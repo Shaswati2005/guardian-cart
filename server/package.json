@@ -1,0 +1,28 @@
+{
+  "name": "guardian-cart-server",
+  "version": "1.0.0",
+  "description": "Guardian Cart backend: Gemini shopping agent, deterministic policy engine, PayPal sandbox payments",
+  "main": "src/server.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "e2e:sandbox": "tsx scripts/e2e-sandbox.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "eval:scam": "tsx scripts/eval-scam.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^1.52.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.5",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}

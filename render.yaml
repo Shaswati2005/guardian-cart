@@ -1,0 +1,53 @@
+# One web service: Express serves the API and the built React app from the same origin.
+# Deploy: Render dashboard → New → Blueprint → pick this repo, then fill in the keys marked sync: false.
+services:
+  - type: web
+    name: guardian-cart
+    runtime: node
+    plan: free # use "starter" while judging: no cold starts, and it can mount the disk below
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_API_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      # The free plan's disk resets on every deploy/restart: after connecting PayPal once,
+      # copy the vault ID from the logs here so the mandate survives
+      - key: PAYPAL_VAULT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ALERT_FROM_EMAIL
+        sync: false
+      - key: CAREGIVER_EMAIL
+        sync: false
+      - key: APP_SECRET
+        generateValue: true
+      # Required: Sarah's dashboard (approve, refund, rules) asks for this PIN. 6+ characters;
+      # put it in the submission notes for judges.
+      - key: CAREGIVER_PIN
+        sync: false
+      - key: CLIENT_URL
+        value: /
+      - key: AI_DAILY_LIMIT
+        value: "600"
+    # On a paid plan, uncomment to keep db.json (purchases, holds, the PayPal connection) across
+    # restarts and deploys. The free plan's filesystem is wiped, which leaves PayPal holds the app
+    # no longer knows about.
+    # disk:
+    #   name: guardian-cart-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # and add an env var: DATA_DIR=/var/data
