@@ -197,8 +197,8 @@ export function Landing() {
             <Divider />
             <Text type="supporting" justify="center" as="p" className="mx-auto max-w-4xl px-6 pb-8">
               Built with Google Gemini (tool-calling agent, rule translation, scam detection), PayPal sandbox (Vault, Orders,
-              Authorizations, Refunds, Webhooks), Channel3 product search and AG Grid. Payments use the PayPal sandbox;
-              deliveries from stores are simulated.
+              Authorizations, Refunds, Webhooks), AG Grid and Render. Products come from a curated demo catalog, payments use the PayPal sandbox,
+              and deliveries from stores are simulated.
             </Text>
           </VStack>
         </LayoutContent>
