@@ -92,7 +92,7 @@ export function RulesEditor({ agent, onSaved }: { agent: Agent; onSaved: () => v
           isDisabled={rules.length === 0 || (unchanged && !compiled)}
           onClick={compile}
         />
-        <Text type="supporting">Gemini turns your words into exact limits. You review before anything changes.</Text>
+        <Text type="supporting">Claude turns your words into exact limits. You review before anything changes.</Text>
       </div>
       {error && (
         <div className="mt-3" role="alert">

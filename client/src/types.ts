@@ -80,7 +80,7 @@ export interface ScamCheck {
   risk: 'LOW' | 'MEDIUM' | 'HIGH';
   signals: string[];
   explanation: string;
-  engine: 'GEMINI_AI' | 'RULES_ONLY';
+  engine: 'CLAUDE_AI' | 'RULES_ONLY';
 }
 
 // One step of the shopping agent's tool use, kept for the receipt and the demo
@@ -93,7 +93,7 @@ export interface AgentTraceStep {
 
 export interface DecisionReceipt {
   goal: string;
-  reasoningEngine: 'GEMINI_AI';
+  reasoningEngine: 'CLAUDE_AI';
   executionLatencyMs?: number;
   selectedProduct: CandidateProduct;
   rejectedCandidates: Array<{

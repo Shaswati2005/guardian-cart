@@ -20,7 +20,7 @@ Today families pick between two bad options. They can take the card away, which 
 | Margaret, 78 (the shopper) | Sarah, her daughter (the caregiver) |
 |---|---|
 | Talks or types what she needs in large, high-contrast text with a mic button | Writes the rules in plain English: *"up to $60 a week, ask me above $40, never gift cards"* |
-| A Gemini agent asks a follow-up if needed, finds real products and shows **one** clear option | Gemini turns the rules into a structured policy, and Sarah reviews the changes before saving |
+| A Claude agent asks a follow-up if needed, finds real products and shows **one** clear option | Claude turns the rules into a structured policy, and Sarah reviews the changes before saving |
 | Taps **Yes, buy it** or **No thanks**, and hears the result read aloud | Purchases within the rules are paid automatically, while anything else is **held on PayPal** until Sarah approves or releases it |
 | Gets a calm warning if a message looks like a scam | Gets an alert by email and on the dashboard, with one-tap Approve/Decline links |
 
@@ -30,10 +30,10 @@ Every purchase comes with a **receipt** showing the agent's steps, each rule che
 
 The language model never moves money.
 
-1. **Scam shield first.** Each message from Margaret goes through deterministic pattern rules (based on FTC and FBI scam scripts: a payment method scammers favor, combined with a pretext or pressure) and then through a Gemini classifier. Gemini can **raise** the risk but never lower it.
+1. **Scam shield first.** Each message from Margaret goes through deterministic pattern rules (based on FTC and FBI scam scripts: a payment method scammers favor, combined with a pretext or pressure) and then through a Claude classifier. Claude can **raise** the risk but never lower it.
    - HIGH: the shopping agent is skipped, Margaret gets a gentle reply, and Sarah is alerted.
    - MEDIUM: Sarah gets a heads-up and the chat continues.
-2. **Agent with tools.** Gemini function calling runs `search_products`, `check_policy` and `propose_purchase`. The price is locked when the item is proposed, and an item the rules block cannot be proposed.
+2. **Agent with tools.** Claude tool use runs `search_products`, `check_policy` and `propose_purchase`. The price is locked when the item is proposed, and an item the rules block cannot be proposed.
 3. **Policy engine decides.** `policy.evaluate()` is a pure function checking pause state, blocked, approval-only and allowed categories, the per-item cap, the approval threshold, the weekly budget, new stores and minimum rating. The strictest outcome wins: **APPROVE → capture, HOLD → authorize, BLOCK → no PayPal call.** It runs again when Margaret taps Yes, so a stale preview can't get through.
 4. **Category mapping is deterministic.** "Gift cards" (including look-alikes such as prepaid Visa or digital codes) are detected by code, not left to the model. Items the code can't place are always held for Sarah.
 5. **One payment at a time per person.** Purchases, approvals and refunds for Margaret run one after another, so two quick taps can't both slip under the weekly budget.
@@ -53,10 +53,10 @@ Every POST sends a `PayPal-Request-Id` for idempotency; for a purchase it is der
 
 Verified webhooks update the purchase: a refund or reversal made on PayPal marks it refunded, a denied capture marks it failed, and a voided or expired hold leaves *Needs your OK*. Holds also expire on the date PayPal gives, so an old request never sits there forever. Refunds wait until PayPal reports the capture as completed.
 
-## How AI is used (Google Gemini, `gemini-2.5-flash` by default)
+## How AI is used (Claude by Anthropic, `claude-opus-5-5` by default)
 
-- **Shopping agent:** a multi-turn function-calling loop (up to 6 tool steps), streamed to the UI over SSE so Margaret sees "Looking for blood pressure cuffs…" and "Checking Sarah's rules…".
-- **Rule translator:** structured output (`responseSchema`) turns plain-English rules into a typed `Policy`. It is then clamped by `sanitizePolicy` (thresholds kept consistent, unknown categories dropped, blocked categories removed from the allowed list). Rules it can't express are listed as **not enforced** instead of being silently dropped.
+- **Shopping agent:** a multi-turn tool-use loop (up to 6 tool steps), streamed to the UI over SSE so Margaret sees "Looking for blood pressure cuffs…" and "Checking Sarah's rules…".
+- **Rule translator:** structured output (`output_config.format` with a JSON schema) turns plain-English rules into a typed `Policy`. It is then clamped by `sanitizePolicy` (thresholds kept consistent, unknown categories dropped, blocked categories removed from the allowed list). Rules it can't express are listed as **not enforced** instead of being silently dropped.
 - **Scam classifier:** structured output with the risk level, the signals found and an explanation, used on top of the rule layer.
 
 ### Scam shield evaluation
@@ -66,7 +66,7 @@ Verified webhooks update the purchase: a refund or reversal made on PayPal marks
 | Engine | Scams flagged | Scams blocked outright | Harmless messages blocked | Harmless with heads-up to caregiver |
 |---|---|---|---|---|
 | Rules only | 13/13 (100%) | 12/13 (92%) | 0/11 (0%) | 1/11 (9%), the birthday gift card |
-| Rules + Gemini | _run with key_ | | | |
+| Rules + Claude | _run with key_ | | | |
 
 The rule-layer results are also a unit test, so a regex change can't quietly break them.
 
@@ -77,11 +77,11 @@ flowchart LR
   M[Margaret's page<br/>voice + large text] -- SSE chat --> API
   S[Sarah's dashboard<br/>approvals, rules, ledger] --> API
   subgraph API[Express server]
-    SC[Scam shield<br/>rules + Gemini] --> AG[Gemini agent<br/>tool calling]
+    SC[Scam shield<br/>rules + Claude] --> AG[Claude agent<br/>tool use]
     AG --> PR[Products<br/>Channel3 or curated]
     AG --> PE[Policy engine<br/>pure code]
     PE --> PP[PayPal client]
-    RC[Rule translator<br/>Gemini structured output] --> PE
+    RC[Rule translator<br/>Claude structured output] --> PE
   end
   PP -- Vault / Orders / Authorizations / Refunds --> PAYPAL[(PayPal sandbox)]
   PAYPAL -- verified webhooks --> API
@@ -104,7 +104,7 @@ flowchart LR
 ## Tools and services used
 
 - **PayPal Developer Platform (sandbox):** Vault v3, Orders v2, Payments v2 (authorize, capture, void, refund), Webhooks
-- **Google Gemini API** via `@google/genai`: function calling and structured output
+- **Claude API (Anthropic)** via `@anthropic-ai/sdk`: tool use, structured outputs, and server-side refusal fallback
 - **Channel3** product search API for real products (optional; falls back to a curated catalog)
 - **Resend** for email alerts (optional)
 - **AG Grid Community**, React, Vite, Tailwind CSS, Express, TypeScript, lucide icons, Atkinson Hyperlegible font (designed for low-vision readers)
@@ -125,7 +125,7 @@ npm run dev                          # client on :3000, API on :5000
 |---|---|
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | A **sandbox** REST app with Vault ("Save payment methods") enabled |
 | `PAYPAL_WEBHOOK_ID` | Webhook verification (add a webhook pointing at `<your URL>/api/paypal/webhook`) |
-| `GEMINI_API_KEY` | The shopping agent, rule translator and AI scam layer. An AI Studio key or a GCP API key both work; add `GOOGLE_GENAI_USE_VERTEXAI=true` to go through Vertex AI instead (or set `GOOGLE_CLOUD_PROJECT` to use a service account). `npm run check:ai --prefix server` tells you which setup your key needs |
+| `ANTHROPIC_API_KEY` | The shopping agent, rule translator and AI scam layer. Create one at console.anthropic.com; `npm run check:ai --prefix server` confirms it works. Optional `CLAUDE_MODEL` overrides the default `claude-opus-5-5` |
 | `APP_SECRET` | Signing email links and persona cookies (16+ random characters). Required in production |
 | `CAREGIVER_PIN` | The PIN for Sarah's dashboard (6+ characters). Required in production; without it locally the dashboard opens with one click |
 | `CHANNEL3_API_KEY` | Optional: real products (otherwise the curated catalog is used) |

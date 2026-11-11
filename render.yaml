@@ -23,10 +23,8 @@ services:
       # copy the vault ID from the logs here so the mandate survives
       - key: PAYPAL_VAULT_ID
         sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      # Set to true to send the key above to Vertex AI instead of the Gemini API
-      - key: GOOGLE_GENAI_USE_VERTEXAI
+      # Claude API key from console.anthropic.com (shopping agent, rule translator, AI scam layer)
+      - key: ANTHROPIC_API_KEY
         sync: false
       - key: CHANNEL3_API_KEY
         sync: false

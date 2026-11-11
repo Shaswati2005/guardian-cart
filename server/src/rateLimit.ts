@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 
 // In-memory fixed-window limiter. One instance serves the hosted demo, so no shared store is needed.
-// Protects the Gemini and Channel3 quotas from a single visitor (or bot) burning them.
+// Protects the Claude and Channel3 quotas from a single visitor (or bot) burning them.
 export function rateLimit({ windowMs, max, name, global = false }: { windowMs: number; max: number; name: string; global?: boolean }) {
   const hits = new Map<string, { count: number; resetAt: number }>();
 

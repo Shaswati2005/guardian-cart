@@ -8,7 +8,7 @@ import { signApprovalAction, verifyApprovalAction } from '../src/notify.js';
 import { checkCaregiverPin } from '../src/session.js';
 
 // Scam tests exercise the deterministic floor only
-delete process.env.GEMINI_API_KEY;
+delete process.env.ANTHROPIC_API_KEY;
 process.env.APP_SECRET = 'test-secret-0123456789';
 
 const policy: Policy = sanitizePolicy({

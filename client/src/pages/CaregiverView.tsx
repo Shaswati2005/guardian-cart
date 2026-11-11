@@ -351,7 +351,7 @@ export function CaregiverView() {
             <Banner
               status="warning"
               title="The AI helper is offline"
-              description="No Gemini key is set on the server, so the shopping helper and rule translator are off. The scam shield's rule layer still works."
+              description="No Claude API key is set on the server, so the shopping helper and rule translator are off. The scam shield's rule layer still works."
             />
           )}
           {paused && <Banner status="error" title="Shopping is paused" description="The helper can still chat, but nothing will be bought." />}

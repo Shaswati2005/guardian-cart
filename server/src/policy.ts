@@ -1,4 +1,3 @@
-import { Type } from '@google/genai';
 import { generateStructured } from './llm.js';
 import { CandidateProduct, Policy, PolicyCategory, PolicyVerdict, POLICY_CATEGORIES, RuleCheckResult } from './types.js';
 
@@ -114,27 +113,28 @@ export function describePolicy(policy: Policy): string {
 }
 
 // ---------------------------------------------------------------------------
-// Policy compiler: caregiver's plain English -> structured Policy (Gemini
+// Policy compiler: caregiver's plain English -> structured Policy (Claude
 // structured output). The result is shown as a diff and only saved on confirm.
 // ---------------------------------------------------------------------------
 
-const categoryArray = { type: Type.ARRAY, items: { type: Type.STRING, enum: [...POLICY_CATEGORIES] } };
+const categoryArray = { type: 'array', items: { type: 'string', enum: [...POLICY_CATEGORIES] } };
 
+// JSON Schema for Claude structured outputs: every field required, no extra fields
 const POLICY_SCHEMA = {
-  type: Type.OBJECT,
+  type: 'object',
   properties: {
-    weeklyBudget: { type: Type.NUMBER, description: 'Total USD per rolling 7 days.' },
-    perItemMax: { type: Type.NUMBER, description: 'Hard maximum USD for any single item; never bought above this.' },
-    approvalAbove: { type: Type.NUMBER, description: 'Items priced above this USD need caregiver approval.' },
+    weeklyBudget: { type: 'number', description: 'Total USD per rolling 7 days.' },
+    perItemMax: { type: 'number', description: 'Hard maximum USD for any single item; never bought above this.' },
+    approvalAbove: { type: 'number', description: 'Items priced above this USD need caregiver approval.' },
     allowedCategories: { ...categoryArray, description: 'Categories bought without asking. Empty means any non-blocked category.' },
     approvalCategories: { ...categoryArray, description: 'Categories that always need caregiver approval.' },
     blockedCategories: { ...categoryArray, description: 'Categories never bought.' },
-    minRating: { type: Type.NUMBER, nullable: true, description: 'Minimum star rating (0-5), or null if not mentioned.' },
-    trustedMerchants: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Store domains like walgreens.com.' },
-    newMerchantNeedsApproval: { type: Type.BOOLEAN },
+    minRating: { anyOf: [{ type: 'number' }, { type: 'null' }], description: 'Minimum star rating (0-5), or null if not mentioned.' },
+    trustedMerchants: { type: 'array', items: { type: 'string' }, description: 'Store domains like walgreens.com.' },
+    newMerchantNeedsApproval: { type: 'boolean' },
     unenforcedRules: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
+      type: 'array',
+      items: { type: 'string' },
       description: 'Verbatim rules (or parts) that cannot be expressed with the fields above.'
     }
   },
@@ -145,10 +145,12 @@ const POLICY_SCHEMA = {
     'allowedCategories',
     'approvalCategories',
     'blockedCategories',
+    'minRating',
     'trustedMerchants',
     'newMerchantNeedsApproval',
     'unenforcedRules'
-  ]
+  ],
+  additionalProperties: false
 };
 
 const COMPILER_SYSTEM = `You convert a family caregiver's plain-English spending rules for an older relative into a structured policy.

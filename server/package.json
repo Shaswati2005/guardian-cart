@@ -1,7 +1,7 @@
 {
   "name": "guardian-cart-server",
   "version": "1.0.0",
-  "description": "Guardian Cart backend: Gemini shopping agent, deterministic policy engine, PayPal sandbox payments",
+  "description": "Guardian Cart backend: Claude shopping agent, deterministic policy engine, PayPal sandbox payments",
   "main": "src/server.ts",
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "check:ai": "tsx scripts/check-ai.ts"
   },
   "dependencies": {
-    "@google/genai": "^1.52.0",
+    "@anthropic-ai/sdk": "^1.8.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "uuid": "^11.0.3"

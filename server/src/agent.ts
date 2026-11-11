@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Type, Content } from '@google/genai';
+import Anthropic from '@anthropic-ai/sdk';
 import { db } from './db.js';
 import {
   createVaultedOrder,
@@ -103,7 +103,7 @@ function chatMessage(role: ChatMessage['role'], text: string, proposalId?: strin
 }
 
 // ---------------------------------------------------------------------------
-// The shopping agent: Gemini with tools. It can search and propose, but it has
+// The shopping agent: Claude with tools. It can search and propose, but it has
 // no tool that moves money; that only happens in acceptProposal via policy.ts.
 // ---------------------------------------------------------------------------
 
@@ -154,11 +154,11 @@ export function buildTools(agent: Agent, state: { proposal?: Proposal; goal: str
       declaration: {
         name: 'search_products',
         description: 'Search real products from online stores. Returns up to 6 items with ids, prices, stores and ratings.',
-        parameters: {
-          type: Type.OBJECT,
+        input_schema: {
+          type: 'object',
           properties: {
-            query: { type: Type.STRING, description: 'Simple product search words, e.g. "blood pressure cuff wide".' },
-            max_price: { type: Type.NUMBER, description: 'Optional maximum price in USD.' }
+            query: { type: 'string', description: 'Simple product search words, e.g. "blood pressure cuff wide".' },
+            max_price: { type: 'number', description: 'Optional maximum price in USD.' }
           },
           required: ['query']
         }
@@ -178,9 +178,9 @@ export function buildTools(agent: Agent, state: { proposal?: Proposal; goal: str
       declaration: {
         name: 'check_policy',
         description: "Check one product against the caregiver's rules. Returns APPROVE, HOLD (caregiver must OK) or BLOCK, with reasons.",
-        parameters: {
-          type: Type.OBJECT,
-          properties: { product_id: { type: Type.STRING } },
+        input_schema: {
+          type: 'object',
+          properties: { product_id: { type: 'string' } },
           required: ['product_id']
         }
       },
@@ -197,12 +197,12 @@ export function buildTools(agent: Agent, state: { proposal?: Proposal; goal: str
       declaration: {
         name: 'propose_purchase',
         description: 'Show one product to the person with Yes/No buttons. Call at most once. Does not buy anything.',
-        parameters: {
-          type: Type.OBJECT,
+        input_schema: {
+          type: 'object',
           properties: {
-            product_id: { type: Type.STRING },
-            reason_for_user: { type: Type.STRING, description: 'One plain sentence on why this item fits the need.' },
-            alternative_ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Other product_ids you considered.' }
+            product_id: { type: 'string' },
+            reason_for_user: { type: 'string', description: 'One plain sentence on why this item fits the need.' },
+            alternative_ids: { type: 'array', items: { type: 'string' }, description: 'Other product_ids you considered.' }
           },
           required: ['product_id', 'reason_for_user']
         }
@@ -296,7 +296,7 @@ async function chatTurn(agentId: string, message: string, onStep?: (step: AgentT
   }
 
   if (!isLlmConfigured()) {
-    throw new Error("the shopping helper isn't switched on yet (no Gemini key or Vertex AI settings on the server)");
+    throw new Error("the shopping helper isn't switched on yet (no Claude API key on the server)");
   }
 
   // 2. Shopping agent with tools
@@ -306,9 +306,12 @@ async function chatTurn(agentId: string, message: string, onStep?: (step: AgentT
     trace,
     scamCheck
   };
-  const contents: Content[] = [...history.slice(-12), userMessage].map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.text }]
+  const recent = [...history.slice(-12), userMessage];
+  // The conversation sent to Claude must start with a user turn
+  while (recent.length > 1 && recent[0].role !== 'user') recent.shift();
+  const contents: Anthropic.Beta.BetaMessageParam[] = recent.map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.text
   }));
 
   throwIfAborted(signal);
@@ -380,7 +383,7 @@ export async function acceptProposal(proposalId: string): Promise<{
 
     const decisionReceipt: DecisionReceipt = {
       goal: proposal.goal,
-      reasoningEngine: 'GEMINI_AI',
+      reasoningEngine: 'CLAUDE_AI',
       selectedProduct: product,
       rejectedCandidates: proposal.alternatives.map(alt => {
         const altEval = evaluate(alt, agent.policy, ctx);

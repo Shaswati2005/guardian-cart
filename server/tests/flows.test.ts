@@ -9,7 +9,7 @@ import path from 'path';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'guardian-cart-test-'));
 process.env.PAYPAL_VAULT_ID = 'TESTVAULT';
 delete process.env.RESEND_API_KEY;
-delete process.env.GEMINI_API_KEY;
+delete process.env.ANTHROPIC_API_KEY;
 
 const { db, getDefaultAgents } = await import('../src/db.js');
 const agentModule = await import('../src/agent.js');
@@ -433,22 +433,24 @@ test('agent tools: a blocked item cannot be proposed and bad arguments are rejec
 test('tool loop: tool errors go back to the model, and the step cap forces a text answer', async () => {
   const sent: any[] = [];
   let turn = 0;
-  const generate = async (request: any) => {
-    sent.push(structuredClone(request.contents));
+  const create = async (request: any) => {
+    sent.push(structuredClone(request.messages));
     turn++;
-    if (request.config?.toolConfig) return { text: 'Here is my answer.', functionCalls: undefined, candidates: [] } as any;
+    if (request.tool_choice?.type === 'none') {
+      return { content: [{ type: 'text', text: 'Here is my answer.' }], stop_reason: 'end_turn' } as any;
+    }
     return {
-      text: undefined,
-      functionCalls: [{ id: `c${turn}`, name: turn === 1 ? 'broken' : 'nope', args: {} }],
-      candidates: [{ content: { role: 'model', parts: [{ functionCall: { name: 'broken', args: {} } }] } }]
+      content: [{ type: 'tool_use', id: `c${turn}`, name: turn === 1 ? 'broken' : 'nope', input: {} }],
+      stop_reason: 'tool_use'
     } as any;
   };
-  const tools = [{ declaration: { name: 'broken' }, run: async () => { throw new Error('boom'); } }];
-  const result = await runToolLoop({ system: 's', history: [], tools, maxSteps: 2, generate });
+  const tools = [{ declaration: { name: 'broken', input_schema: { type: 'object' as const } }, run: async () => { throw new Error('boom'); } }];
+  const result = await runToolLoop({ system: 's', history: [], tools, maxSteps: 2, create });
   assert.equal(result.text, 'Here is my answer.');
   assert.equal(turn, 3); // 2 tool steps + 1 forced answer
-  const lastToolReply = sent[1].at(-1).parts[0].functionResponse.response;
-  assert.equal(lastToolReply.error, 'boom');
+  const lastToolReply = sent[1].at(-1).content[0];
+  assert.equal(lastToolReply.is_error, true);
+  assert.equal(JSON.parse(lastToolReply.content).error, 'boom');
   assert.deepEqual(result.trace.map(s => s.summary), ['Error: boom', 'Unknown tool nope']);
 });
 
@@ -456,7 +458,7 @@ test('tool loop stops when the request is cancelled', async () => {
   const controller = new AbortController();
   controller.abort();
   await assert.rejects(
-    runToolLoop({ system: 's', history: [], tools: [], signal: controller.signal, generate: async () => ({}) as any }),
+    runToolLoop({ system: 's', history: [], tools: [], signal: controller.signal, create: async () => ({}) as any }),
     /cancelled/
   );
 });

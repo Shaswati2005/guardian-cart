@@ -1,53 +1,36 @@
-// npm run check:ai: finds out how your Google key can reach Gemini (Gemini API or Vertex AI)
-// with one tiny request per mode, and tells you what to put in server/.env.
+// npm run check:ai: checks that ANTHROPIC_API_KEY can reach Claude, and that structured output works
 import 'dotenv/config';
-import { GoogleGenAI } from '@google/genai';
-import { GEMINI_MODEL, llmMode } from '../src/llm.js';
+import Anthropic from '@anthropic-ai/sdk';
+import { AI_MODEL, generateStructured, isLlmConfigured } from '../src/llm.js';
 
-const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
-const project = (process.env.GOOGLE_CLOUD_PROJECT || '').trim();
-const location = (process.env.GOOGLE_CLOUD_LOCATION || 'us-central1').trim();
-
-const attempts: { name: string; env: string; make: () => GoogleGenAI }[] = [];
-if (apiKey) {
-  attempts.push({ name: 'Gemini API', env: 'GEMINI_API_KEY=<your key>', make: () => new GoogleGenAI({ apiKey }) });
-  attempts.push({
-    name: 'Vertex AI express mode',
-    env: 'GEMINI_API_KEY=<your key>\nGOOGLE_GENAI_USE_VERTEXAI=true',
-    make: () => new GoogleGenAI({ vertexai: true, apiKey })
-  });
-}
-if (project) {
-  attempts.push({
-    name: `Vertex AI project ${project} (${location})`,
-    env: `GOOGLE_GENAI_USE_VERTEXAI=true\nGOOGLE_CLOUD_PROJECT=${project}\nGOOGLE_CLOUD_LOCATION=${location}`,
-    make: () => new GoogleGenAI({ vertexai: true, project, location })
-  });
-}
-
-if (attempts.length === 0) {
-  console.log('No key found. Put your key in server/.env as GEMINI_API_KEY=<your key> and run this again.');
+if (!isLlmConfigured()) {
+  console.log('No key found. Put your key in server/.env as ANTHROPIC_API_KEY=<your key> (from console.anthropic.com) and run this again.');
   process.exit(1);
 }
 
-console.log(`Model: ${GEMINI_MODEL}. Current .env setup: ${llmMode() ?? 'not configured'}\n`);
-let working: (typeof attempts)[number] | null = null;
-for (const a of attempts) {
-  try {
-    const res = await a.make().models.generateContent({ model: GEMINI_MODEL, contents: 'Reply with the word OK.' });
-    console.log(`✔ ${a.name}: works (replied "${(res.text || '').trim()}")`);
-    working ??= a;
-  } catch (err: any) {
-    console.log(`✘ ${a.name}: ${String(err.message || err).split('\n')[0].slice(0, 220)}`);
-  }
-}
+console.log(`Model: ${AI_MODEL}\n`);
 
-if (working) {
-  console.log(`\nUse this in server/.env (and the same on Render):\n${working.env}`);
-} else {
-  console.log(
-    '\nNothing worked. In the GCP console for the key\'s project, enable "Generative Language API" (for the Gemini API) ' +
-      'or "Vertex AI API", and check the key has no API restrictions that block it. Then run this again.'
-  );
+try {
+  const out = await generateStructured<{ reply: string }>({
+    system: 'You are a connectivity check.',
+    prompt: 'Reply with the word OK.',
+    schema: { type: 'object', properties: { reply: { type: 'string' } }, required: ['reply'], additionalProperties: false },
+    effort: 'low'
+  });
+  console.log(`✔ Claude API: replied "${out.reply}"`);
+} catch (err) {
+  if (err instanceof Anthropic.AuthenticationError) {
+    console.log('✘ Claude API: the key was rejected (401). Create a new key at console.anthropic.com → API Keys.');
+  } else if (err instanceof Anthropic.PermissionDeniedError) {
+    console.log('✘ Claude API: the key has no access to this model (403). Check the key\'s workspace, or set CLAUDE_MODEL.');
+  } else if (err instanceof Anthropic.NotFoundError) {
+    console.log(`✘ Claude API: model "${AI_MODEL}" was not found (404). Check CLAUDE_MODEL.`);
+  } else if (err instanceof Anthropic.RateLimitError) {
+    console.log('✘ Claude API: rate limited or out of credit (429). Check Plans & Billing at console.anthropic.com.');
+  } else if (err instanceof Anthropic.APIError) {
+    console.log(`✘ Claude API error ${err.status}: ${err.message}`);
+  } else {
+    console.log(`✘ ${(err as Error).message}`);
+  }
   process.exit(1);
 }

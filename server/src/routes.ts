@@ -23,7 +23,7 @@ import {
 } from './paypal.js';
 import { compilePolicy, sanitizePolicy, describePolicy } from './policy.js';
 import { getCuratedCatalog } from './products.js';
-import { isLlmConfigured, GEMINI_MODEL } from './llm.js';
+import { isLlmConfigured, AI_MODEL } from './llm.js';
 import { verifyApprovalAction, resultPage, confirmPage, publicBaseUrl, ApprovalAction } from './notify.js';
 import { requireRole, setRole, hasRole, currentRoles, caregiverPinRequired, checkCaregiverPin, ROLES, Role } from './session.js';
 import { rateLimit } from './rateLimit.js';
@@ -33,7 +33,7 @@ export const apiRouter = Router();
 const elder = requireRole('elder');
 const caregiver = requireRole('caregiver');
 const anyone = requireRole('elder', 'caregiver');
-// Each AI request can cost several Gemini calls (scam check + tool loop), and searches spend Channel3 credits
+// Each AI request can cost several Claude calls (scam check + tool loop), and searches spend Channel3 credits
 const aiPerVisitor = rateLimit({ name: 'ai-visitor', windowMs: 60_000, max: 12 });
 const aiPerDay = rateLimit({ name: 'ai-daily', windowMs: 24 * 60 * 60_000, max: Number(process.env.AI_DAILY_LIMIT) || 600, global: true });
 const paymentsPerVisitor = rateLimit({ name: 'payments', windowMs: 60_000, max: 20 });
@@ -102,7 +102,7 @@ async function buildStatus(detailed: boolean) {
     mode: !paypalConnected ? 'AWAITING_CREDENTIALS' : mandate ? 'MANDATE_ACTIVE' : 'AWAITING_MANDATE',
     paypalEndpoint: getPayPalBaseUrl(),
     mandate: mandate ? { payerEmail: detailed ? mandate.payerEmail : undefined, createdAt: mandate.createdAt } : null,
-    ai: { configured: isLlmConfigured(), model: GEMINI_MODEL },
+    ai: { configured: isLlmConfigured(), model: AI_MODEL },
     productSearch: process.env.CHANNEL3_API_KEY ? 'CHANNEL3' : 'CURATED',
     error: authError ? (detailed ? authError : 'PayPal is not connected') : null,
     timestamp: new Date().toISOString()
@@ -317,7 +317,7 @@ apiRouter.post('/agents/:id/chat-stream', elder, aiPerVisitor, aiPerDay, async (
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
 
-  // If Margaret closes the page, stop the Gemini loop instead of spending quota on an answer nobody sees
+  // If Margaret closes the page, stop the Claude loop instead of spending quota on an answer nobody sees
   const abort = new AbortController();
   res.on('close', () => {
     if (!res.writableFinished) abort.abort();
@@ -351,7 +351,7 @@ apiRouter.post('/proposals/:id/decline', elder, async (req: Request, res: Respon
   }
 });
 
-// 7. Policy: caregiver writes rules in English -> Gemini compiles -> caregiver confirms
+// 7. Policy: caregiver writes rules in English -> Claude compiles -> caregiver confirms
 const cleanRules = (raw: unknown): string[] =>
   Array.isArray(raw)
     ? raw.filter((r): r is string => typeof r === 'string' && Boolean(r.trim())).map(r => r.trim().slice(0, 300)).slice(0, 30)
