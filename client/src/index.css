@@ -1,28 +1,104 @@
-@import "tailwindcss";
+/* Astryx design system (matcha theme) with Tailwind for layout.
+   Layer order is declared first so reset < Tailwind preflight < Astryx components < theme < utilities. */
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
 
-/* Warm, high-contrast palette: calm for older eyes, clear signals for the caregiver */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import '@astryxdesign/theme-matcha/theme.css';
+@import '@astryxdesign/core/tailwind-theme.css';
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* App-only colors the theme doesn't have (PayPal's brand blue), and Tailwind's layout unit kept at 4px:
+   matcha's spacing step is 6px, which made h-16 = 96px. Astryx components still use matcha's own steps. */
 @theme {
-  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-
-  --color-paper: #faf7f2;
-  --color-surface: #ffffff;
-  --color-line: #e7e1d6;
-  --color-ink: #1f2a37;
-  --color-muted: #5b6472;
-
-  --color-brand: #0f766e;
-  --color-brand-strong: #115e59;
-  --color-brand-soft: #e6f4f1;
-
-  --color-ok: #15803d;
-  --color-ok-soft: #e8f5ec;
-  --color-hold: #b45309;
-  --color-hold-soft: #fdf3e3;
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fdecec;
-
+  --spacing: 0.25rem;
   --color-paypal: #003087;
   --color-paypal-soft: #e8eef9;
+  /* Landing hero palette, after the Folio wallet shot: indigo night sky with a neon-lime highlight */
+  --color-folio-ink: #241a63;
+  --color-folio-lime: #e2ff3d;
+  --color-folio-lavender: #c3c2f0;
+}
+
+/* Readability for older eyes: Atkinson Hyperlegible everywhere (matcha's script heading font is hard
+   to read at low vision) and a 16px base instead of matcha's 14px. Unlayered, so it beats the theme. */
+[data-astryx-theme='matcha'] {
+  --font-family-body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-family-heading: var(--font-family-body);
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  /* Matcha's error fill is pure #fd0000 with black text: technically readable but alarming. A deeper
+     red with white text keeps contrast above 5:1 and reads calmer (badges, destructive buttons, mic). */
+  --color-error: #c62828;
+  --color-on-error: #ffffff;
+
+  /* White + indigo palette (matches the landing hero) instead of matcha's cream page and olive greens.
+     The app runs in light mode only, so plain values are enough here. */
+  --color-background-body: #f7f8fe;
+  --color-background-muted: #eef0fb;
+  --color-background-surface: #ffffff;
+  --color-background-card: #ffffff;
+  --color-background-popover: #ffffff;
+  --color-background-inverted: #241a63;
+  --color-background-gray: #5a5e8524;
+  --color-syntax-background: #f7f8fe;
+
+  --color-border: #e3e6f5;
+  --color-border-emphasized: #c3c2f0;
+  --color-border-gray: #5a5e85;
+
+  --color-accent: #36318f;
+  --color-accent-muted: #36318f14;
+  --color-on-accent: #ffffff;
+  --color-on-light: #1d1a4d;
+  --color-on-warning: #1d1a4d;
+
+  --color-text-primary: #1d1a4d;
+  --color-text-accent: #36318f;
+  --color-text-secondary: #5a5e85;
+  --color-text-gray: #1d1a4d;
+  --color-text-disabled: #b4b7d3;
+
+  --color-icon-primary: #1d1a4d;
+  --color-icon-accent: #36318f;
+  --color-icon-secondary: #5a5e85;
+  --color-icon-gray: #5a5e85;
+  --color-icon-disabled: #b4b7d3;
+
+  --color-neutral: #36318f0f;
+  --color-overlay-hover: #36318f0d;
+  --color-overlay-pressed: #36318f1a;
+  --color-overlay: #1d1a4d80;
+  --color-shadow: #241a631a;
+  --color-skeleton: #dfe2f3;
+}
+
+/* Margaret's view: older-adult scale (research: body text above 16px, touch targets 48px+). Astryx sizes
+   come from these tokens, so every component inside scales together. */
+.elder-scale {
+  --font-size-sm: 1.125rem;
+  --font-size-base: 1.375rem;
+  --font-size-lg: 1.625rem;
+  --size-element-sm: 48px;
+  --size-element-md: 56px;
+  --size-element-lg: 64px;
+  /* Matcha's text tokens resolve var(--font-size-*) where the theme declares them, so restate them here
+     to pick up the larger sizes above */
+  --font-size-xl: 1.75rem;
+  --font-size-2xl: 2.125rem;
+  --font-size-3xl: 2.5rem;
+  --text-body-size: var(--font-size-base);
+  --text-label-size: var(--font-size-base);
+  --text-large-size: var(--font-size-lg);
+  --text-supporting-size: var(--font-size-sm);
+  --text-heading-1-size: var(--font-size-2xl);
+  --text-heading-2-size: var(--font-size-xl);
+  --text-heading-3-size: var(--font-size-lg);
+  --text-heading-4-size: var(--font-size-base);
+  --text-display-3-size: var(--font-size-3xl);
 }
 
 @layer base {
@@ -30,24 +106,46 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    background-color: var(--color-paper);
-    color: var(--color-ink);
-    font-family: var(--font-sans);
     margin: 0;
-  }
-  :focus-visible {
-    outline: 3px solid var(--color-brand);
-    outline-offset: 2px;
-  }
-  button:not(:disabled) {
-    cursor: pointer;
+    background-color: var(--color-background-body);
+    color: var(--color-text-primary);
+    font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
   }
 }
 
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.45); }
-  100% { box-shadow: 0 0 0 18px rgba(185, 28, 28, 0); }
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-error) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px transparent;
+  }
 }
 .listening {
   animation: pulse-ring 1.2s ease-out infinite;
+}
+
+/* Landing hero: indigo-to-periwinkle gradient with a faint starfield, as in the Folio reference */
+.folio-hero {
+  background:
+    radial-gradient(1100px 520px at 85% 115%, #7079da 0%, transparent 60%),
+    linear-gradient(180deg, #241a63 0%, #36318f 48%, #4f57bd 100%);
+}
+.folio-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    radial-gradient(1.5px 1.5px at 72% 58%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 81% 66%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 52%, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 93% 74%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 77% 81%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 65% 88%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 96% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 12% 22%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 12%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 46% 30%, #fff 50%, transparent 51%);
 }

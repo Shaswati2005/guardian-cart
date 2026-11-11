@@ -296,7 +296,7 @@ async function chatTurn(agentId: string, message: string, onStep?: (step: AgentT
   }
 
   if (!isLlmConfigured()) {
-    throw new Error("the shopping helper isn't switched on yet (GEMINI_API_KEY is not set on the server)");
+    throw new Error("the shopping helper isn't switched on yet (no Gemini key or Vertex AI settings on the server)");
   }
 
   // 2. Shopping agent with tools

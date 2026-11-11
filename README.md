@@ -125,7 +125,7 @@ npm run dev                          # client on :3000, API on :5000
 |---|---|
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | A **sandbox** REST app with Vault ("Save payment methods") enabled |
 | `PAYPAL_WEBHOOK_ID` | Webhook verification (add a webhook pointing at `<your URL>/api/paypal/webhook`) |
-| `GEMINI_API_KEY` | The shopping agent, rule translator and AI scam layer |
+| `GEMINI_API_KEY` | The shopping agent, rule translator and AI scam layer. An AI Studio key or a GCP API key both work; add `GOOGLE_GENAI_USE_VERTEXAI=true` to go through Vertex AI instead (or set `GOOGLE_CLOUD_PROJECT` to use a service account). `npm run check:ai --prefix server` tells you which setup your key needs |
 | `APP_SECRET` | Signing email links and persona cookies (16+ random characters). Required in production |
 | `CAREGIVER_PIN` | The PIN for Sarah's dashboard (6+ characters). Required in production; without it locally the dashboard opens with one click |
 | `CHANNEL3_API_KEY` | Optional: real products (otherwise the curated catalog is used) |

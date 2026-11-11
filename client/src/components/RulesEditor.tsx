@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { TriangleAlert, WandSparkles } from 'lucide-react';
+import { WandSparkles } from 'lucide-react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { api, money, type CompiledPolicy } from '../api';
 import type { Agent, Policy, PolicyCategory } from '../types';
-import { Button, categoryLabel } from './ui';
+import { categoryLabel, icon } from './ui';
 
 const list = (cats: PolicyCategory[]) => (cats.length ? cats.map(categoryLabel).join(', ') : '—');
 
@@ -20,14 +25,13 @@ const FIELDS: Array<{ label: string; format: (p: Policy) => string }> = [
 
 export function PolicySummary({ policy }: { policy: Policy }) {
   return (
-    <dl className="grid grid-cols-1 gap-y-2 text-sm">
+    <MetadataList label={{ position: 'start', width: '45%' }}>
       {FIELDS.map(f => (
-        <div key={f.label} className="flex justify-between gap-3 border-b border-line/70 pb-1.5">
-          <dt className="text-muted">{f.label}</dt>
-          <dd className="text-right font-bold">{f.format(policy)}</dd>
-        </div>
+        <MetadataListItem key={f.label} label={f.label}>
+          <Text weight="bold">{f.format(policy)}</Text>
+        </MetadataListItem>
       ))}
-    </dl>
+    </MetadataList>
   );
 }
 
@@ -68,33 +72,40 @@ export function RulesEditor({ agent, onSaved }: { agent: Agent; onSaved: () => v
 
   return (
     <div>
-      <label htmlFor="rules" className="font-bold">
-        {agent.name}'s shopping rules, in your own words (one per line)
-      </label>
-      <textarea
-        id="rules"
+      <TextArea
+        label={`${agent.name}'s shopping rules, in your own words`}
+        description="One rule per line."
         value={text}
-        onChange={e => {
-          setText(e.target.value);
+        onChange={value => {
+          setText(value);
           setCompiled(null);
         }}
         rows={6}
-        className="mt-2 w-full rounded-xl border border-line bg-paper p-3 leading-relaxed outline-none focus:border-brand"
+        width="100%"
       />
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <Button onClick={compile} busy={busy === 'compile'} disabled={rules.length === 0 || (unchanged && !compiled)}>
-          <WandSparkles className="h-4 w-4" /> Translate rules with AI
-        </Button>
-        <span className="text-sm text-muted">Gemini turns your words into exact limits. You review before anything changes.</span>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button
+          label="Translate rules with AI"
+          variant="primary"
+          icon={icon(WandSparkles)}
+          isLoading={busy === 'compile'}
+          isDisabled={rules.length === 0 || (unchanged && !compiled)}
+          onClick={compile}
+        />
+        <Text type="supporting">Gemini turns your words into exact limits. You review before anything changes.</Text>
       </div>
-      {error && <p className="mt-2 text-danger">{error}</p>}
+      {error && (
+        <div className="mt-3" role="alert">
+          <Banner status="error" title="Couldn't translate the rules" description={error} />
+        </div>
+      )}
 
       {compiled && (
-        <div className="mt-4 rounded-xl border-2 border-brand/40 bg-brand-soft/50 p-4">
+        <div className="mt-4 rounded-md border-2 border-accent bg-accent-muted p-4">
           <p className="font-bold">Here's how the helper will read these rules:</p>
           <table className="mt-3 w-full text-sm">
             <thead>
-              <tr className="text-left text-muted">
+              <tr className="text-left text-secondary">
                 <th className="pb-1 font-normal"> </th>
                 <th className="pb-1 font-normal">Now</th>
                 <th className="pb-1 font-normal">After saving</th>
@@ -106,9 +117,9 @@ export function RulesEditor({ agent, onSaved }: { agent: Agent; onSaved: () => v
                 const after = f.format(compiled.proposed);
                 const changed = before !== after;
                 return (
-                  <tr key={f.label} className={changed ? 'bg-hold-soft' : ''}>
-                    <td className="py-1 pr-3 text-muted">{f.label}</td>
-                    <td className={`py-1 pr-3 ${changed ? 'text-muted line-through' : ''}`}>{before}</td>
+                  <tr key={f.label} className={changed ? 'bg-warning-muted text-on-warning-muted' : ''}>
+                    <td className="py-1 pr-3 pl-1 text-secondary">{f.label}</td>
+                    <td className={`py-1 pr-3 ${changed ? 'line-through opacity-70' : ''}`}>{before}</td>
                     <td className={`py-1 ${changed ? 'font-bold' : ''}`}>{after}</td>
                   </tr>
                 );
@@ -116,25 +127,23 @@ export function RulesEditor({ agent, onSaved }: { agent: Agent; onSaved: () => v
             </tbody>
           </table>
           {compiled.proposed.unenforcedRules.length > 0 && (
-            <div className="mt-3 flex gap-2 rounded-lg bg-hold-soft p-3 text-sm text-hold">
-              <TriangleAlert className="h-5 w-5 shrink-0" />
-              <div>
-                <p className="font-bold">These can't be enforced automatically yet:</p>
-                <ul className="list-disc pl-5">
-                  {compiled.proposed.unenforcedRules.map(r => (
-                    <li key={r}>{r}</li>
-                  ))}
-                </ul>
-              </div>
+            <div className="mt-3">
+              <Banner
+                status="warning"
+                title="These can't be enforced automatically yet"
+                description={
+                  <ul className="list-disc pl-5">
+                    {compiled.proposed.unenforcedRules.map(r => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                }
+              />
             </div>
           )}
           <div className="mt-4 flex gap-2">
-            <Button variant="ok" onClick={save} busy={busy === 'save'}>
-              Looks right, save
-            </Button>
-            <Button variant="secondary" onClick={() => setCompiled(null)}>
-              Cancel
-            </Button>
+            <Button label="Looks right, save" variant="primary" isLoading={busy === 'save'} onClick={save} />
+            <Button label="Cancel" variant="secondary" onClick={() => setCompiled(null)} />
           </div>
         </div>
       )}

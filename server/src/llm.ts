@@ -5,17 +5,55 @@ export const GEMINI_MODEL = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').tri
 
 let client: GoogleGenAI | null = null;
 
+const env = (name: string) => (process.env[name] || '').trim();
+
+/**
+ * Three ways to reach Gemini:
+ * 1. Gemini Developer API: GEMINI_API_KEY (or GOOGLE_API_KEY), from AI Studio or a GCP project
+ *    with the "Generative Language API" enabled.
+ * 2. Vertex AI express mode: GOOGLE_GENAI_USE_VERTEXAI=true plus a GCP API key.
+ * 3. Vertex AI with a project: GOOGLE_GENAI_USE_VERTEXAI=true, GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION,
+ *    and Application Default Credentials (GOOGLE_APPLICATION_CREDENTIALS=<service-account.json> or gcloud login).
+ */
+export function llmMode(): 'gemini-api' | 'vertex-express' | 'vertex-project' | null {
+  const apiKey = env('GEMINI_API_KEY') || env('GOOGLE_API_KEY');
+  if (/^(1|true|yes)$/i.test(env('GOOGLE_GENAI_USE_VERTEXAI'))) {
+    if (env('GOOGLE_CLOUD_PROJECT')) return 'vertex-project';
+    if (apiKey) return 'vertex-express';
+    return null;
+  }
+  return apiKey ? 'gemini-api' : null;
+}
+
 export function isLlmConfigured(): boolean {
-  return Boolean((process.env.GEMINI_API_KEY || '').trim());
+  return llmMode() !== null;
 }
 
 function getClient(): GoogleGenAI {
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set in server/.env');
+  if (client) return client;
+  const httpOptions = { timeout: 30_000 };
+  const apiKey = env('GEMINI_API_KEY') || env('GOOGLE_API_KEY');
+  // The SDK sends API keys as a header, not in the URL
+  switch (llmMode()) {
+    case 'gemini-api':
+      client = new GoogleGenAI({ apiKey, httpOptions });
+      break;
+    case 'vertex-express':
+      client = new GoogleGenAI({ vertexai: true, apiKey, httpOptions });
+      break;
+    case 'vertex-project':
+      client = new GoogleGenAI({
+        vertexai: true,
+        project: env('GOOGLE_CLOUD_PROJECT'),
+        location: env('GOOGLE_CLOUD_LOCATION') || 'us-central1',
+        httpOptions
+      });
+      break;
+    default:
+      throw new Error(
+        'Gemini is not configured: set GEMINI_API_KEY (or GOOGLE_API_KEY), or GOOGLE_GENAI_USE_VERTEXAI=true with a GCP key or GOOGLE_CLOUD_PROJECT, in server/.env'
+      );
   }
-  // The SDK sends the key as a header, not in the URL
-  client ??= new GoogleGenAI({ apiKey, httpOptions: { timeout: 30_000 } });
   return client;
 }
 

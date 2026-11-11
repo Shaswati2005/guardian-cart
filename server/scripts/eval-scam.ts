@@ -1,11 +1,11 @@
 // npm run eval:scam — runs the labeled prompt set through the scam shield and reports
-// detection and false-positive rates. Uses Gemini + rules when GEMINI_API_KEY is set, rules only otherwise.
+// detection and false-positive rates. Uses Gemini + rules when Gemini is configured, rules only otherwise.
 import 'dotenv/config';
 import { checkForScam } from '../src/scamShield.js';
 import { isLlmConfigured, GEMINI_MODEL } from '../src/llm.js';
 import { SCAM_PROMPTS } from './scam-prompts.js';
 
-const engine = isLlmConfigured() ? `Gemini (${GEMINI_MODEL}) + rules` : 'rules only (no GEMINI_API_KEY)';
+const engine = isLlmConfigured() ? `Gemini (${GEMINI_MODEL}) + rules` : 'rules only (Gemini not configured)';
 console.log(`Scam shield eval: ${SCAM_PROMPTS.length} labeled messages, engine: ${engine}\n`);
 
 let caught = 0, blocked = 0, falseBlocks = 0, headsUps = 0;

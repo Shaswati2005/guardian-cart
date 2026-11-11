@@ -1,95 +1,208 @@
-import { ArrowRight, MessageCircleHeart, ShieldCheck, Wallet, WandSparkles } from 'lucide-react';
+import { CornerDownRight, MessageCircleHeart, ShieldCheck, ShieldX, Wallet, WandSparkles } from 'lucide-react';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Heading } from '@astryxdesign/core/Heading';
+import { HStack, Layout, LayoutContent, VStack } from '@astryxdesign/core/Layout';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { Text } from '@astryxdesign/core/Text';
+import { icon } from '../components/ui';
 
 const STEPS = [
   {
-    Icon: MessageCircleHeart,
-    title: 'Ask in plain words',
-    text: 'Margaret types or speaks what she needs. A Gemini agent asks a simple follow-up if needed and finds real products.'
+    Glyph: MessageCircleHeart,
+    title: 'Margaret asks in plain words',
+    text: 'She types or simply talks. The helper asks a short follow-up if it needs one, finds real products, and shows one clear choice with big Yes and No buttons.'
   },
   {
-    Icon: WandSparkles,
-    title: 'Rules in your own words',
-    text: 'Sarah writes rules like "ask me above $40". AI turns them into exact limits, and Sarah confirms before they apply.'
+    Glyph: WandSparkles,
+    title: 'Sarah sets the rules in her own words',
+    text: '"Ask me above $40." AI turns that into exact limits, and Sarah reviews the change before it applies.'
   },
   {
-    Icon: ShieldCheck,
+    Glyph: ShieldCheck,
     title: 'Code decides, not the AI',
-    text: 'Every purchase is checked by a policy engine the AI cannot override. Scam patterns like gift-card requests are stopped and Sarah is alerted.'
+    text: 'Every purchase goes through a policy engine the AI cannot override. Gift-card and wire-transfer requests are stopped, and Sarah is told.'
   },
   {
-    Icon: Wallet,
+    Glyph: Wallet,
     title: 'Paid safely with PayPal',
-    text: 'Sarah approves PayPal once. Allowed purchases are paid right away; anything else is held on PayPal until Sarah approves or releases it.'
+    text: 'Allowed purchases are paid right away. Anything else is held on PayPal until Sarah approves or releases it.'
   }
 ];
 
-function PersonaCard({ href, emoji, name, who, what }: { href: string; emoji: string; name: string; who: string; what: string }) {
+/** The hero "picture": a still preview of both sides of the product, made from the real components. */
+function HeroPreview() {
   return (
-    <a
-      href={href}
-      className="group flex flex-col rounded-2xl border-2 border-line bg-surface p-6 transition hover:border-brand hover:shadow-md"
-    >
-      <span className="text-5xl" aria-hidden>
-        {emoji}
-      </span>
-      <span className="mt-4 text-2xl font-bold">Enter as {name}</span>
-      <span className="text-muted">{who}</span>
-      <span className="mt-3 flex-1">{what}</span>
-      <span className="mt-4 inline-flex items-center gap-2 font-bold text-brand">
-        Open <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-      </span>
-    </a>
+    <figure className="mx-auto w-full max-w-[34rem] text-primary" aria-label="Preview of what Margaret and Sarah each see">
+      <VStack gap={4}>
+          <Card elevation="high" className="w-full">
+            <VStack gap={3}>
+              <HStack gap={2} vAlign="center">
+                <span aria-hidden>👵</span>
+                <Text type="label" color="secondary">
+                  Margaret's view
+                </Text>
+              </HStack>
+              <div className="self-end rounded-lg rounded-br-sm bg-accent px-4 py-3 text-lg text-on-accent">
+                I keep tripping in the hallway at night
+              </div>
+              <div className="rounded-lg rounded-bl-sm border border-border px-4 py-3 text-lg">
+                A motion night light would light the way. This one plugs into the wall:
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                <div className="min-w-0">
+                  <Text weight="bold" display="block" maxLines={1}>
+                    Motion-sensor night light, 4 pack
+                  </Text>
+                  <Text type="large" weight="bold" color="accent" display="block">
+                    $24.99
+                  </Text>
+                </div>
+                <Button label="Yes, buy it" variant="primary" size="lg" />
+              </div>
+            </VStack>
+          </Card>
+
+          <Card elevation="high" className="w-full">
+            <VStack gap={3}>
+              <HStack gap={2} vAlign="center">
+                <span aria-hidden>👩</span>
+                <Text type="label" color="secondary">
+                  Sarah's dashboard
+                </Text>
+              </HStack>
+              <div className="rounded-md border border-border p-3">
+                <HStack gap={2} vAlign="center">
+                  <StatusDot variant="warning" label="Waiting" />
+                  <Text weight="bold">Needs your OK</Text>
+                </HStack>
+                <Text as="p" display="block" className="mt-1">
+                  Blood pressure monitor, $64.00. Over $40, so it's held on PayPal.
+                </Text>
+                <HStack gap={2} className="mt-3">
+                  <Button label="Approve" variant="primary" size="sm" />
+                  <Button label="Decline" size="sm" />
+                </HStack>
+              </div>
+              <div className="flex gap-3 rounded-md border border-error bg-error-muted p-3">
+                <span className="text-error">{icon(ShieldX, 'md')}</span>
+                <div>
+                  <Text weight="bold" display="block">
+                    Scam stopped
+                  </Text>
+                  <Text type="supporting" display="block">
+                    "My grandson needs gift cards right away." Nothing was bought.
+                  </Text>
+                </div>
+              </div>
+            </VStack>
+          </Card>
+      </VStack>
+    </figure>
   );
 }
 
 export function Landing() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <p className="font-bold uppercase tracking-wider text-brand">Guardian Cart</p>
-      <h1 className="mt-2 max-w-3xl text-4xl font-bold leading-tight md:text-5xl">
-        Independence for older adults. Peace of mind for the family.
-      </h1>
-      <p className="mt-4 max-w-2xl text-xl text-muted">
-        An AI shopping helper that older adults can simply talk to. It follows the rules a family member sets, stops scams,
-        and pays through PayPal.
-      </p>
+    <Layout
+      height="fill"
+      content={
+        <LayoutContent padding={0}>
+          <VStack gap={10}>
+            {/* Hero after the Folio reference: night-sky gradient, framed headline with one lime word,
+                persona chips, a short caption and a lime pill call to action */}
+            <section className="folio-hero relative overflow-hidden text-white">
+              <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-14 md:py-20 lg:grid-cols-[1fr_1.05fr]">
+                <div className="order-2 min-w-0 lg:order-1">
+                  <HeroPreview />
+                </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <PersonaCard
-          href="#/margaret"
-          emoji="👵"
-          name="Margaret"
-          who="78, lives alone"
-          what="Large text and voice. Ask for what you need, then tap Yes or No."
-        />
-        <PersonaCard
-          href="#/caregiver"
-          emoji="👩"
-          name="Sarah"
-          who="Margaret's daughter, two states away"
-          what="Approve held purchases, see scam alerts, change the rules, and check every PayPal payment."
-        />
-      </div>
-      <p className="mt-3 text-sm text-muted">Tip for the demo: open Margaret and Sarah in two windows side by side.</p>
+                <div className="relative order-1 min-w-0 rounded-tl-[44px] border-t border-l border-white/25 pt-10 pl-7 md:pl-12 lg:order-2">
+                  {/* Tick marks on the frame's edge */}
+                  {['top-[46%]', 'top-[64%]', 'top-[76%]'].map(t => (
+                    <span key={t} aria-hidden className={`absolute -left-px ${t} h-6 w-0.5 bg-white`} />
+                  ))}
+                  <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] leading-[0.95] font-bold tracking-tight text-balance text-white">
+                    Independence, with a <span className="text-folio-lime">safety</span> net
+                  </h1>
 
-      <h2 className="mt-12 text-2xl font-bold">How it works</h2>
-      <ol className="mt-4 grid gap-4 md:grid-cols-2">
-        {STEPS.map(({ Icon, title, text }) => (
-          <li key={title} className="flex gap-4 rounded-2xl border border-line bg-surface p-5">
-            <Icon className="h-8 w-8 shrink-0 text-brand" aria-hidden />
-            <div>
-              <p className="font-bold">{title}</p>
-              <p className="mt-1 text-muted">{text}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+                  <div className="mt-8 flex items-center gap-3" aria-label="Margaret, Sarah and PayPal">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl" title="Margaret">
+                      👵
+                    </span>
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl" title="Sarah">
+                      👩
+                    </span>
+                    <span className="flex h-12 items-center justify-center gap-1.5 rounded-full border border-dashed border-white/50 px-4 text-sm font-bold">
+                      {icon(Wallet, 'sm')} PayPal
+                    </span>
+                  </div>
 
-      <p className="mt-10 text-sm text-muted">
-        Built with Google Gemini (tool-calling agent, rule translation, scam detection), PayPal sandbox (Vault, Orders,
-        Authorizations, Refunds, Webhooks), Channel3 product search and AG Grid. Payments use the PayPal sandbox; deliveries
-        from stores are simulated.
-      </p>
-    </div>
+                  <p className="mt-8 max-w-sm text-lg leading-snug text-folio-lavender">
+                    A shopping helper older adults can simply talk to. It follows the rules family set, stops scams, and
+                    pays through PayPal.
+                  </p>
+
+                  <div className="mt-8 flex flex-wrap items-center gap-3">
+                    <a
+                      href="#/margaret"
+                      className="inline-flex h-14 items-center gap-3 rounded-full bg-folio-lime px-7 text-lg font-bold text-folio-ink transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    >
+                      {icon(CornerDownRight, 'md')} Try Margaret's view
+                    </a>
+                    <a
+                      href="#/caregiver"
+                      className="inline-flex h-14 items-center rounded-full border border-white/40 px-7 text-lg font-bold text-white transition hover:bg-white/10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    >
+                      Open Sarah's dashboard
+                    </a>
+                  </div>
+                  <p className="mt-6 max-w-md pb-2 text-sm text-folio-lavender">
+                    Tip: open the two views side by side to watch a purchase go from request to approval.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* How it works */}
+            <VStack gap={6} className="mx-auto w-full max-w-5xl px-6">
+              <Heading level={2} justify="center">
+                How it works
+              </Heading>
+              <Grid columns={{ minWidth: 380, max: 2, repeat: 'fit' }} columnGap={10} rowGap={8}>
+                {STEPS.map(({ Glyph, title, text }, i) => (
+                  <HStack key={title} gap={4} vAlign="start">
+                    <span
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-folio-ink text-folio-lime"
+                      aria-hidden
+                    >
+                      {icon(Glyph, 'md')}
+                    </span>
+                    <VStack gap={1}>
+                      <Text type="label" color="secondary">
+                        Step {i + 1}
+                      </Text>
+                      <Heading level={3}>{title}</Heading>
+                      <Text as="p" color="secondary">
+                        {text}
+                      </Text>
+                    </VStack>
+                  </HStack>
+                ))}
+              </Grid>
+            </VStack>
+
+            <Divider />
+            <Text type="supporting" justify="center" as="p" className="mx-auto max-w-4xl px-6 pb-8">
+              Built with Google Gemini (tool-calling agent, rule translation, scam detection), PayPal sandbox (Vault, Orders,
+              Authorizations, Refunds, Webhooks), Channel3 product search and AG Grid. Payments use the PayPal sandbox;
+              deliveries from stores are simulated.
+            </Text>
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

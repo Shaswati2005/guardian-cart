@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "e2e:sandbox": "tsx scripts/e2e-sandbox.ts",
     "test": "tsx --test tests/*.test.ts",
-    "eval:scam": "tsx scripts/eval-scam.ts"
+    "eval:scam": "tsx scripts/eval-scam.ts",
+    "check:ai": "tsx scripts/check-ai.ts"
   },
   "dependencies": {
     "@google/genai": "^1.52.0",

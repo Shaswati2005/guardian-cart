@@ -13,10 +13,13 @@ import {
   type ColDef,
   type ICellRendererParams
 } from 'ag-grid-community';
-import { Download, FileText, RotateCcw } from 'lucide-react';
+import { Download, FileText, RotateCcw, Search } from 'lucide-react';
+import { Button } from '@astryxdesign/core/Button';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { money } from '../api';
 import type { Transaction } from '../types';
-import { Button, StatusPill, categoryLabel } from './ui';
+import { categoryLabel, icon, StatusPill } from './ui';
 
 // Only the features this table uses (rows, sorting, quick filter, tooltips, cell classes, CSV, and
 // refreshCells for the "Refunding…" state), registered here so AG Grid only loads with the caregiver
@@ -32,12 +35,13 @@ ModuleRegistry.registerModules([
   ...(import.meta.env.DEV ? [ValidationModule] : [])
 ]);
 
+// Colors come from the Astryx theme tokens, so the grid follows the app's theme
 const gridTheme = themeQuartz.withParams({
-  accentColor: '#0f766e',
-  backgroundColor: '#ffffff',
-  foregroundColor: '#1f2a37',
-  borderColor: '#e7e1d6',
-  headerBackgroundColor: '#faf7f2',
+  accentColor: 'var(--color-accent)',
+  backgroundColor: 'var(--color-background-surface)',
+  foregroundColor: 'var(--color-text-primary)',
+  borderColor: 'var(--color-border)',
+  headerBackgroundColor: 'var(--color-background-body)',
   headerFontWeight: 700,
   fontFamily: 'inherit',
   fontSize: 14,
@@ -50,7 +54,7 @@ const FILTERS: Array<{ key: Filter; label: string; match: (t: Transaction) => bo
   { key: 'ALL', label: 'All', match: () => true },
   { key: 'PAID', label: 'Paid', match: t => t.status === 'AUTO_EXECUTED' || t.status === 'APPROVED_BY_HUMAN' },
   { key: 'WAITING', label: 'Waiting', match: t => t.status === 'PENDING_APPROVAL' },
-  { key: 'STOPPED', label: 'Blocked / declined / refunded', match: t => ['BLOCKED', 'REJECTED', 'REFUNDED', 'EXPIRED', 'FAILED'].includes(t.status) }
+  { key: 'STOPPED', label: 'Stopped', match: t => ['BLOCKED', 'REJECTED', 'REFUNDED', 'EXPIRED', 'FAILED'].includes(t.status) }
 ];
 
 interface GridContext {
@@ -83,7 +87,7 @@ export function Ledger({
         width: 150,
         valueFormatter: p => (p.value ? new Date(p.value).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')
       },
-      { headerName: 'Item', field: 'itemName', flex: 2, minWidth: 200, tooltipField: 'itemName' },
+      { headerName: 'Item', field: 'itemName', flex: 2, minWidth: 150, tooltip: true },
       {
         headerName: 'Category',
         valueGetter: p => (p.data ? categoryLabel(p.data.decisionReceipt.selectedProduct.category) : ''),
@@ -113,7 +117,7 @@ export function Ledger({
       {
         headerName: '',
         colId: 'actions',
-        width: 180,
+        width: 250,
         pinned: 'right',
         sortable: false,
         cellRenderer: (p: ICellRendererParams<Transaction, unknown, GridContext>) => {
@@ -125,21 +129,21 @@ export function Ledger({
           const pending = !outside && Boolean(tx.captureStatus) && tx.captureStatus !== 'COMPLETED';
           const refundable = settled && !pending && !outside;
           return (
-            <div className="flex h-full items-center gap-2">
-              <button onClick={() => onViewReceipt(tx)} className="inline-flex items-center gap-1 font-bold text-brand hover:underline">
-                <FileText className="h-4 w-4" /> Receipt
-              </button>
+            <div className="flex h-full items-center gap-1">
+              <Button label="Receipt" variant="ghost" size="sm" icon={icon(FileText)} className="shrink-0" onClick={() => onViewReceipt(tx)} />
               {refundable && (
-                <button
+                <Button
+                  label={refundingId === tx.id ? 'Refunding…' : 'Refund'}
+                  variant="ghost"
+                  size="sm"
+                  icon={icon(RotateCcw)}
+                  className="shrink-0"
+                  isLoading={refundingId === tx.id}
                   onClick={() => onRefund(tx)}
-                  disabled={refundingId === tx.id}
-                  className="inline-flex items-center gap-1 font-bold text-paypal hover:underline disabled:opacity-50"
-                >
-                  <RotateCcw className="h-4 w-4" /> {refundingId === tx.id ? 'Refunding…' : 'Refund'}
-                </button>
+                />
               )}
-              {settled && pending && <span className="text-xs text-muted">PayPal still processing</span>}
-              {settled && outside && <span className="text-xs text-muted">Refund in PayPal</span>}
+              {settled && pending && <span className="text-xs text-secondary">PayPal still processing</span>}
+              {settled && outside && <span className="text-xs text-secondary">Refund in PayPal</span>}
             </div>
           );
         }
@@ -157,32 +161,31 @@ export function Ledger({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {FILTERS.map(f => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-full border px-3 py-1 text-sm font-bold ${
-              filter === f.key ? 'border-brand bg-brand text-white' : 'border-line bg-surface text-muted hover:border-brand'
-            }`}
-          >
-            {f.label} ({transactions.filter(f.match).length})
-          </button>
-        ))}
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search items, stores, PayPal IDs"
-          className="ml-auto min-w-48 flex-1 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand sm:flex-none"
-          aria-label="Search purchases"
-        />
-        <Button
-          variant="secondary"
-          className="text-sm"
-          onClick={() => gridRef.current?.api.exportDataAsCsv({ fileName: `guardian-cart-purchases-${new Date().toISOString().slice(0, 10)}.csv` })}
-        >
-          <Download className="h-4 w-4" /> CSV
-        </Button>
+      <div className="mb-3 flex flex-wrap items-end gap-3">
+        <SegmentedControl label="Show purchases" value={filter} onChange={v => setFilter(v as Filter)}>
+          {FILTERS.map(f => (
+            <SegmentedControlItem key={f.key} value={f.key} label={`${f.label} (${transactions.filter(f.match).length})`} />
+          ))}
+        </SegmentedControl>
+        <div className="ml-auto flex flex-1 items-end gap-2 sm:flex-none">
+          <TextInput
+            label="Search purchases"
+            isLabelHidden
+            type="search"
+            startIcon={Search}
+            placeholder="Items, stores, PayPal IDs"
+            value={search}
+            onChange={setSearch}
+            hasClear
+            width={260}
+          />
+          <Button
+            label="CSV"
+            tooltip="Download these purchases as a spreadsheet"
+            icon={icon(Download)}
+            onClick={() => gridRef.current?.api.exportDataAsCsv({ fileName: `guardian-cart-purchases-${new Date().toISOString().slice(0, 10)}.csv` })}
+          />
+        </div>
       </div>
       <div style={{ height: 360 }}>
         <AgGridReact<Transaction>

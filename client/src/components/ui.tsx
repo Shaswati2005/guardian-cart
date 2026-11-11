@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ComponentType, type SVGProps } from 'react';
+import { Badge, type BadgeProps } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 import {
   Banknote,
   Gift,
   HeartPulse,
   House,
-  LoaderCircle,
   Package,
   Puzzle,
   Shirt,
@@ -13,6 +14,11 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { PolicyCategory, PolicyVerdict, Transaction } from '../types';
+
+/** A Lucide icon as an Astryx Icon, so it picks up the button/field's size and color. */
+export const icon = (glyph: ComponentType<SVGProps<SVGSVGElement>>, size?: 'xsm' | 'sm' | 'md' | 'lg') => (
+  <Icon icon={glyph} size={size} />
+);
 
 const CATEGORY_ICON: Record<PolicyCategory, typeof Package> = {
   HEALTH: HeartPulse,
@@ -33,84 +39,43 @@ export const categoryLabel = (c: PolicyCategory) =>
 /** Product photo, or a calm category icon when there's no image (curated items) or it fails to load. */
 export function ProductImage({ src, category, className = '' }: { src?: string; category: PolicyCategory; className?: string }) {
   const [failed, setFailed] = useState(false);
-  const Icon = CATEGORY_ICON[category] || Package;
+  const Glyph = CATEGORY_ICON[category] || Package;
   if (src && !failed) {
-    return <img src={src} alt="" onError={() => setFailed(true)} className={`object-contain bg-white ${className}`} />;
+    return <img src={src} alt="" onError={() => setFailed(true)} className={`bg-white object-contain ${className}`} />;
   }
   return (
-    <div className={`flex items-center justify-center bg-brand-soft text-brand ${className}`} aria-hidden>
-      <Icon className="h-1/2 w-1/2" strokeWidth={1.6} />
+    <div className={`flex items-center justify-center bg-accent-muted text-accent ${className}`} aria-hidden>
+      <Glyph className="h-1/2 w-1/2" strokeWidth={1.6} />
     </div>
   );
 }
 
-const STATUS_STYLE: Record<Transaction['status'], { label: string; className: string }> = {
-  AUTO_EXECUTED: { label: 'Paid', className: 'bg-ok-soft text-ok' },
-  APPROVED_BY_HUMAN: { label: 'Approved & paid', className: 'bg-ok-soft text-ok' },
-  PENDING_APPROVAL: { label: 'Waiting for OK', className: 'bg-hold-soft text-hold' },
-  REJECTED: { label: 'Declined', className: 'bg-line/60 text-muted' },
-  REFUNDED: { label: 'Refunded', className: 'bg-paypal-soft text-paypal' },
-  BLOCKED: { label: 'Blocked', className: 'bg-danger-soft text-danger' },
-  EXPIRED: { label: 'Hold expired', className: 'bg-line/60 text-muted' },
-  FAILED: { label: 'Payment failed', className: 'bg-danger-soft text-danger' }
+type BadgeVariant = BadgeProps['variant'];
+
+// Loud status colors only where Sarah may need to act (waiting, blocked, failed); settled states stay calm
+const STATUS_BADGE: Record<Transaction['status'], { label: string; variant: BadgeVariant }> = {
+  AUTO_EXECUTED: { label: 'Paid', variant: 'green' },
+  APPROVED_BY_HUMAN: { label: 'Approved & paid', variant: 'green' },
+  PENDING_APPROVAL: { label: 'Waiting for OK', variant: 'warning' },
+  REJECTED: { label: 'Declined', variant: 'neutral' },
+  REFUNDED: { label: 'Refunded', variant: 'blue' },
+  BLOCKED: { label: 'Blocked', variant: 'error' },
+  EXPIRED: { label: 'Hold expired', variant: 'neutral' },
+  FAILED: { label: 'Payment failed', variant: 'error' }
 };
 
 export function StatusPill({ status }: { status: Transaction['status'] }) {
-  const s = STATUS_STYLE[status];
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${s.className}`}>{s.label}</span>;
+  const s = STATUS_BADGE[status];
+  return <Badge label={s.label} variant={s.variant} />;
 }
 
-const VERDICT_STYLE: Record<PolicyVerdict, { label: string; className: string }> = {
-  APPROVE: { label: 'Within the rules', className: 'bg-ok-soft text-ok' },
-  HOLD: { label: 'Needs caregiver OK', className: 'bg-hold-soft text-hold' },
-  BLOCK: { label: 'Blocked by rules', className: 'bg-danger-soft text-danger' }
+const VERDICT_BADGE: Record<PolicyVerdict, { label: string; variant: BadgeVariant }> = {
+  APPROVE: { label: 'Within the rules', variant: 'green' },
+  HOLD: { label: 'Needs caregiver OK', variant: 'warning' },
+  BLOCK: { label: 'Blocked by rules', variant: 'error' }
 };
 
 export function VerdictBadge({ verdict }: { verdict: PolicyVerdict }) {
-  const v = VERDICT_STYLE[verdict];
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${v.className}`}>{v.label}</span>;
-}
-
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>{children}</section>;
-}
-
-export function Spinner({ className = 'h-4 w-4' }: { className?: string }) {
-  return <LoaderCircle className={`animate-spin ${className}`} aria-hidden />;
-}
-
-export function Button({
-  children,
-  onClick,
-  variant = 'primary',
-  disabled,
-  busy,
-  className = '',
-  type = 'button'
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ok';
-  disabled?: boolean;
-  busy?: boolean;
-  className?: string;
-  type?: 'button' | 'submit';
-}) {
-  const styles = {
-    primary: 'bg-brand text-white hover:bg-brand-strong',
-    ok: 'bg-ok text-white hover:brightness-95',
-    danger: 'bg-surface text-danger border border-danger/40 hover:bg-danger-soft',
-    secondary: 'bg-surface text-ink border border-line hover:bg-paper'
-  }[variant];
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled || busy}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-bold transition disabled:opacity-50 ${styles} ${className}`}
-    >
-      {busy && <Spinner />}
-      {children}
-    </button>
-  );
+  const v = VERDICT_BADGE[verdict];
+  return <Badge label={v.label} variant={v.variant} />;
 }

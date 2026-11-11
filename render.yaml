@@ -25,6 +25,9 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # Set to true to send the key above to Vertex AI instead of the Gemini API
+      - key: GOOGLE_GENAI_USE_VERTEXAI
+        sync: false
       - key: CHANNEL3_API_KEY
         sync: false
       - key: RESEND_API_KEY
