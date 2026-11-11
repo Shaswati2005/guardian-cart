@@ -66,7 +66,7 @@ Verified webhooks update the purchase: a refund or reversal made on PayPal marks
 | Engine | Scams flagged | Scams blocked outright | Harmless messages blocked | Harmless with heads-up to caregiver |
 |---|---|---|---|---|
 | Rules only | 13/13 (100%) | 12/13 (92%) | 0/11 (0%) | 1/11 (9%), the birthday gift card |
-| Rules + Claude | _run with key_ | | | |
+| Rules + Claude (`claude-opus-5-5`) | 13/13 (100%) | 13/13 (100%) | 0/11 (0%) | 1/11 (9%), the birthday gift card |
 
 The rule-layer results are also a unit test, so a regex change can't quietly break them.
 
