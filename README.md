@@ -4,7 +4,7 @@
 
 Built for the *Build What's Next with PayPal and AI* hackathon.
 
-- **Live demo:** _add Render URL_
+- **Live demo:** https://guardian-cart-093w.onrender.com (free hosting: the first visit can take about 30 seconds to wake the server)
 - **Video (under 3 min):** _add YouTube link_
 
 ---

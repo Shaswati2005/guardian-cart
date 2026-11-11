@@ -26,7 +26,7 @@ if (project) {
 }
 
 if (attempts.length === 0) {
-  console.log('No key found. Put your key in server/.env as GEMINI_API_KEY=AIza... and run this again.');
+  console.log('No key found. Put your key in server/.env as GEMINI_API_KEY=<your key> and run this again.');
   process.exit(1);
 }
 
