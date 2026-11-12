@@ -30,10 +30,11 @@ const CATEGORY_KEYWORDS: Array<[PolicyCategory, RegExp]> = [
   ['ELECTRONICS', /electronic|\bphones?\b|smartphone|\btablets? with\b|\b\d+(\.\d+)?" tablet|\btablet computer|computer|laptop|\btvs?\b|television|home theater|headphones?|earbuds|cameras?\b|smart speaker|charger/],
   ['CLOTHING', /clothing|apparel|\bshoes?\b|\bslippers?\b|\bsocks?\b|\bsweaters?\b|\bcardigans?\b|\bjackets?\b|\b(rain|over|winter|top)?coats?\b|\bpants\b|\bshirts?\b|\bdress(es)?\b/],
   ['PERSONAL_CARE', /personal care|beauty|skin ?care|lotion|hand cream|shampoo|toothpaste|denture|\bsoap|razors?\b|deodorant/],
-  // Kitchen appliances before GROCERY, so "coffee maker" or "food processor" isn't food
-  ['HOUSEHOLD', /coffee (maker|machine|grinder)|food processor|blender|toaster|electric kettle|microwave|air fryer|slow cooker|\bmixer\b/],
+  // Kitchen appliances and tableware before GROCERY, so "coffee maker" or a "tea set" isn't food
+  ['HOUSEHOLD', /coffee (maker|machine|grinder)|food processor|blender|toaster|electric kettle|microwave|air fryer|slow cooker|\bmixer\b|tableware|drinkware|\b(tea|coffee) (sets?|cups?|pots?|for two)\b|\bteacups?\b|\bteapots?\b|\bmugs?\b|\bsaucers?\b|\bnapkins?\b/],
   ['GROCERY', /grocer|\bfoods?\b|snacks?\b|beverages?\b|\btea\b|coffee|cereal|\boats?\b|oatmeal|pantry|nutrition shake|\bsoups?\b|\bfruits?\b|juice|\bcand(y|ies)\b|chocolate/],
-  ['HOBBIES', /\bbooks?\b|puzzles?\b|crossword|\bcrafts?\b|\byarn\b|knit|garden|\bseeds?\b|\bgames?\b|\btoys?\b/],
+  // "Home & Garden" is a store's top-level department, not gardening
+  ['HOBBIES', /\bbooks?\b|puzzles?\b|crossword|\bcrafts?\b|\byarn\b|knit|(?<!home & )garden|\bseeds?\b|\bgames?\b|\btoys?\b/],
   ['HOUSEHOLD', /household|\bhome\b|kitchen|cleaning|batter(y|ies)|light ?bulbs?|night ?lights?|bath mat|bedding|pillows?\b|blankets?\b|towels?\b|grab bars?/]
 ];
 

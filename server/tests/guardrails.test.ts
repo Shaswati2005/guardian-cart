@@ -253,3 +253,12 @@ test('being pushed in an earlier message does not taint her own next request', a
   const r = await checkForScam('Can you get me some English breakfast tea?', ['The salesman insists I buy this vacuum']);
   assert.equal(r.risk, 'LOW');
 });
+
+test('category mapping: real Channel3 paths (Home & Garden is not hobbies, tea sets are not food)', () => {
+  assert.equal(mapCategory('Home & Garden > Lighting > Night Lights & Ambient Lighting', 'Motion Sensor LED Night Lights'), 'HOUSEHOLD');
+  assert.equal(mapCategory('Home & Garden > Kitchen & Dining > Tableware > Coffee & Tea Sets > Tea Sets', 'English Floral Tea Set'), 'HOUSEHOLD');
+  assert.equal(mapCategory('Home & Garden > Kitchen & Dining > Tableware > Drinkware > Coffee & Tea Cups', 'Tea Cup Alassio'), 'HOUSEHOLD');
+  assert.equal(mapCategory('Home & Garden > Linens & Bedding > Table Linens > Cloth Napkins', 'English Breakfast Napkin'), 'HOUSEHOLD');
+  assert.equal(mapCategory('Food, Beverages & Tobacco > Beverages > Tea & Infusions > Tea', 'English Breakfast Tea, 100 Bags'), 'GROCERY');
+  assert.equal(mapCategory('Home & Garden > Lawn & Garden > Gardening > Seeds', 'Tomato Seeds'), 'HOBBIES');
+});
