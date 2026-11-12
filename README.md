@@ -113,24 +113,59 @@ flowchart LR
 
 ## Run it locally
 
-Requires Node 20+.
+### Prerequisites
+
+- **Node.js 20 or newer** (and npm)
+- A **PayPal Developer** account ([developer.paypal.com](https://developer.paypal.com)) with:
+  - a **sandbox REST app** that has **"Save payment methods" (Vault)** turned on, for the client ID and secret
+  - a **sandbox personal (buyer) account** to approve the PayPal connection
+- An **Anthropic API key** from [console.anthropic.com](https://console.anthropic.com) (starts with `sk-ant-`)
+- Optional: a [Channel3](https://trychannel3.com) API key for real products, and a [Resend](https://resend.com) API key for email alerts
+
+### Setup
 
 ```bash
 npm run install:all
 cp server/.env.example server/.env   # then fill in the values below
+npm run check:ai --prefix server     # optional: confirms the Claude key works
 npm run dev                          # client on :3000, API on :5000
 ```
 
-| Variable | Needed for |
-|---|---|
-| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | A **sandbox** REST app with Vault ("Save payment methods") enabled |
-| `PAYPAL_WEBHOOK_ID` | Webhook verification (add a webhook pointing at `<your URL>/api/paypal/webhook`) |
-| `ANTHROPIC_API_KEY` | The shopping agent, rule translator and AI scam layer. Create one at console.anthropic.com; `npm run check:ai --prefix server` confirms it works. Optional `CLAUDE_MODEL` overrides the default `claude-opus-5-5` |
-| `APP_SECRET` | Signing email links and persona cookies (16+ random characters). Required in production |
-| `CHANNEL3_API_KEY` | Optional: real products (otherwise the curated catalog is used) |
-| `RESEND_API_KEY`, `CAREGIVER_EMAIL`, `ALERT_FROM_EMAIL` | Optional: email alerts |
+Open http://localhost:3000, then go to **Sarah's dashboard → Connect PayPal** and approve with your sandbox *personal* account.
 
-Then open **Sarah's dashboard → Connect PayPal** and approve with a sandbox *personal* account.
+### Environment variables (`server/.env`)
+
+**Required to use the app**
+
+| Variable | What it does | If missing |
+|---|---|---|
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | Credentials from your sandbox REST app (Vault enabled) | Connect PayPal and every payment fail |
+| `ANTHROPIC_API_KEY` | Claude: the shopping agent, rule translator and AI scam layer | The shopping chat won't run (the rule-based scam check still does) |
+| `APP_SECRET` | 16+ random characters; signs sessions and email Approve/Decline links | Local: a warning and a temporary secret, and email links can't be signed. Production: the server refuses to start |
+
+**Set by default in `.env.example` (keep these for local development)**
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PAYPAL_API_BASE_URL` | `https://api-m.sandbox.paypal.com` | Must stay the sandbox URL; the server refuses to start with any other |
+| `PORT` | `5000` | API port (the Vite dev server proxies `/api` to it) |
+| `PUBLIC_BASE_URL` | `http://localhost:5000` | Base for PayPal return URLs and email links. On Render, `RENDER_EXTERNAL_URL` is used automatically |
+| `CLIENT_URL` | `http://localhost:3000` | Where to send the browser after Connect PayPal. Use `/` in production |
+
+**Optional**
+
+| Variable | What it does |
+|---|---|
+| `PAYPAL_WEBHOOK_ID` | Verifies PayPal webhooks (add a webhook pointing at `<public URL>/api/paypal/webhook`). Without it, webhooks are rejected and refunds or voids made on PayPal's side won't sync. It needs a public URL, so you can skip it for local testing |
+| `CHANNEL3_API_KEY` | Real product search. Without it, a curated catalog is used |
+| `RESEND_API_KEY`, `CAREGIVER_EMAIL`, `ALERT_FROM_EMAIL` | Email alerts to the caregiver. Without them, alerts appear only on the dashboard |
+| `CLAUDE_MODEL` | Claude model to use (default `claude-opus-5-5`) |
+| `PAYPAL_VAULT_ID` | Reuses a saved PayPal connection after a restart on hosts whose disk is wiped (logged after Connect PayPal) |
+| `DATA_DIR` | Folder for `db.json` (default `server/data`) |
+| `AI_DAILY_LIMIT` | Max AI requests per day across all visitors (default 600) |
+| `TRUST_PROXY` | Trust `X-Forwarded-For` from a proxy (set automatically on Render) |
+
+### Tests
 
 ```bash
 npm test                              # policy engine, category mapping, scam shield, signed links, and the money flows against a fake PayPal, plus HTTP checks of sessions and roles (64 tests)
