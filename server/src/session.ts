@@ -1,11 +1,10 @@
 import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
-import { appSecret, caregiverPin } from './config.js';
+import { appSecret } from './config.js';
 
-// Personas: entering as Margaret sets a signed role cookie with one click. Sarah's dashboard can
-// approve, refund and change rules, so it needs CAREGIVER_PIN (share it with judges in the
-// submission notes). Every endpoint checks the role: Margaret's page can never approve, refund,
-// reset or change rules, and Sarah's page can't shop.
+// Personas: entering as Margaret or Sarah sets a signed role cookie with one click. Every endpoint
+// checks the role: Margaret's page can never approve, refund, reset or change rules, and Sarah's
+// page can't shop.
 export type Role = 'elder' | 'caregiver';
 export const ROLES: Role[] = ['elder', 'caregiver'];
 
@@ -45,17 +44,6 @@ function hasValidCookie(req: Request, role: Role): boolean {
   }
   const [cookieRole, sig] = value.split('.');
   return cookieRole === role && Boolean(sig) && safeEqual(sign(role), sig);
-}
-
-/** Without a PIN configured (local development only) the caregiver persona stays one-click. */
-export function caregiverPinRequired(): boolean {
-  return caregiverPin() !== null;
-}
-
-export function checkCaregiverPin(pin: unknown): boolean {
-  const expected = caregiverPin();
-  if (!expected) return true;
-  return typeof pin === 'string' && safeEqual(pin.trim(), expected);
 }
 
 export function setRole(req: Request, res: Response, role: Role) {

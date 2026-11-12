@@ -25,7 +25,7 @@ import { compilePolicy, sanitizePolicy, describePolicy } from './policy.js';
 import { getCuratedCatalog } from './products.js';
 import { isLlmConfigured, AI_MODEL } from './llm.js';
 import { verifyApprovalAction, resultPage, confirmPage, publicBaseUrl, ApprovalAction } from './notify.js';
-import { requireRole, setRole, hasRole, currentRoles, caregiverPinRequired, checkCaregiverPin, ROLES, Role } from './session.js';
+import { requireRole, setRole, hasRole, currentRoles, ROLES, Role } from './session.js';
 import { rateLimit } from './rateLimit.js';
 
 export const apiRouter = Router();
@@ -37,51 +37,19 @@ const anyone = requireRole('elder', 'caregiver');
 const aiPerVisitor = rateLimit({ name: 'ai-visitor', windowMs: 60_000, max: 12 });
 const aiPerDay = rateLimit({ name: 'ai-daily', windowMs: 24 * 60 * 60_000, max: Number(process.env.AI_DAILY_LIMIT) || 600, global: true });
 const paymentsPerVisitor = rateLimit({ name: 'payments', windowMs: 60_000, max: 20 });
-// Slows down guessing the caregiver PIN: only wrong PINs count, so switching personas never locks anyone out
-const PIN_WINDOW_MS = 15 * 60_000;
-const MAX_PIN_FAILURES = 10;
-const pinFailures = new Map<string, { count: number; resetAt: number }>();
-
-function pinLockedOut(ip: string, now = Date.now()): number {
-  const entry = pinFailures.get(ip);
-  if (!entry || entry.resetAt <= now) return 0;
-  return entry.count >= MAX_PIN_FAILURES ? Math.ceil((entry.resetAt - now) / 1000) : 0;
-}
-
-function recordPinFailure(ip: string, now = Date.now()) {
-  const entry = pinFailures.get(ip);
-  if (!entry || entry.resetAt <= now) pinFailures.set(ip, { count: 1, resetAt: now + PIN_WINDOW_MS });
-  else entry.count++;
-  if (pinFailures.size > 10_000) {
-    for (const [k, v] of pinFailures) if (v.resetAt <= now) pinFailures.delete(k);
-  }
-}
 
 apiRouter.use(rateLimit({ name: 'api', windowMs: 60_000, max: 300 }));
 
-// 0. Persona session (Sarah's needs CAREGIVER_PIN)
+// 0. Persona session
 apiRouter.post('/session', (req: Request, res: Response) => {
   const role = req.body?.role;
   if (!ROLES.includes(role)) return res.status(400).json({ error: 'role must be elder or caregiver' });
-  if (role === 'caregiver') {
-    const ip = req.ip || 'unknown';
-    const wait = pinLockedOut(ip);
-    if (wait > 0) {
-      res.setHeader('Retry-After', String(wait));
-      return res.status(429).json({ error: `Too many wrong PINs. Please wait ${Math.ceil(wait / 60)} minutes and try again.`, pinRequired: true });
-    }
-    if (!checkCaregiverPin(req.body?.pin)) {
-      // Asking without a PIN (to find out one is needed) isn't a guess
-      if (req.body?.pin) recordPinFailure(ip);
-      return res.status(403).json({ error: req.body?.pin ? "That PIN isn't right." : "Enter Sarah's PIN to open her dashboard.", pinRequired: true });
-    }
-  }
   setRole(req, res, role as Role);
   res.json({ role });
 });
 
 apiRouter.get('/session', (req: Request, res: Response) => {
-  res.json({ roles: currentRoles(req), caregiverPinRequired: caregiverPinRequired() });
+  res.json({ roles: currentRoles(req) });
 });
 
 // 1. Health & PayPal status. Details (payer email, PayPal errors) are for the caregiver only.

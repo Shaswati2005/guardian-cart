@@ -77,8 +77,8 @@ const post = <T>(path: string, body?: unknown) =>
 export type Role = 'elder' | 'caregiver';
 
 export const api = {
-  startSession: (role: Role, pin?: string) => post<{ role: Role }>('/session', { role, pin }),
-  sessionInfo: () => request<{ roles: Role[]; caregiverPinRequired: boolean }>('/session'),
+  startSession: (role: Role) => post<{ role: Role }>('/session', { role }),
+  sessionInfo: () => request<{ roles: Role[] }>('/session'),
   dashboard: () => request<DashboardData>('/dashboard'),
   agents: () => request<Agent[]>('/agents'),
   setAgentStatus: (id: string, status: Agent['status']) =>

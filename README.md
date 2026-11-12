@@ -49,7 +49,7 @@ The language model never moves money.
 | Status updates | **Webhooks** checked with `/v1/notifications/verify-webhook-signature` before being trusted, then applied to the purchase (refunded, reversed, denied, voided) |
 | Inspect an order | `GET /v2/checkout/orders/{id}` live from the receipt |
 
-Every POST sends a `PayPal-Request-Id` for idempotency; for a purchase it is derived from the proposal, so a retry after a crash gets the first order back instead of paying twice. The server **refuses to start against production URLs** (and, in production, without `APP_SECRET` and `CAREGIVER_PIN`), and PayPal errors are shown with their `debug_id` rather than hidden.
+Every POST sends a `PayPal-Request-Id` for idempotency; for a purchase it is derived from the proposal, so a retry after a crash gets the first order back instead of paying twice. The server **refuses to start against production URLs** (and, in production, without `APP_SECRET`), and PayPal errors are shown with their `debug_id` rather than hidden.
 
 Verified webhooks update the purchase: a refund or reversal made on PayPal marks it refunded, a denied capture marks it failed, and a voided or expired hold leaves *Needs your OK*. Holds also expire on the date PayPal gives, so an old request never sits there forever. Refunds wait until PayPal reports the capture as completed.
 
@@ -99,7 +99,7 @@ flowchart LR
   - `rateLimit.ts`
   - `db.ts`: JSON store with atomic writes
 - **Client:** React 19 + Vite + Tailwind v4 (`client/src`). The Web Speech API handles voice in and out, AG Grid shows Sarah's purchase list, and pages are lazy-loaded so Margaret's page skips the grid code.
-- **Roles:** Margaret's page can't approve, refund, reset or change rules, and Sarah's page can't shop. The server enforces this with an HMAC-signed cookie. Margaret's page is one click; Sarah's dashboard asks for `CAREGIVER_PIN` (shared with judges in the submission notes). Email Approve/Decline links expire after 3 days and open a confirmation page, so an email scanner that follows links can't approve anything.
+- **Roles:** Margaret's page can't approve, refund, reset or change rules, and Sarah's page can't shop. The server enforces this with an HMAC-signed cookie. Both pages open with one click for the demo. Email Approve/Decline links expire after 3 days and open a confirmation page, so an email scanner that follows links can't approve anything.
 
 ## Tools and services used
 
@@ -127,21 +127,20 @@ npm run dev                          # client on :3000, API on :5000
 | `PAYPAL_WEBHOOK_ID` | Webhook verification (add a webhook pointing at `<your URL>/api/paypal/webhook`) |
 | `ANTHROPIC_API_KEY` | The shopping agent, rule translator and AI scam layer. Create one at console.anthropic.com; `npm run check:ai --prefix server` confirms it works. Optional `CLAUDE_MODEL` overrides the default `claude-opus-5-5` |
 | `APP_SECRET` | Signing email links and persona cookies (16+ random characters). Required in production |
-| `CAREGIVER_PIN` | The PIN for Sarah's dashboard (6+ characters). Required in production; without it locally the dashboard opens with one click |
 | `CHANNEL3_API_KEY` | Optional: real products (otherwise the curated catalog is used) |
 | `RESEND_API_KEY`, `CAREGIVER_EMAIL`, `ALERT_FROM_EMAIL` | Optional: email alerts |
 
 Then open **Sarah's dashboard → Connect PayPal** and approve with a sandbox *personal* account.
 
 ```bash
-npm test                              # policy engine, category mapping, scam shield, signed links, and the money flows against a fake PayPal, plus HTTP checks of sessions and roles (62 tests)
+npm test                              # policy engine, category mapping, scam shield, signed links, and the money flows against a fake PayPal, plus HTTP checks of sessions and roles (64 tests)
 npm run eval:scam --prefix server     # scam shield on the labeled prompt set
 npm run e2e:sandbox --prefix server   # real sandbox: capture → refund, authorize → capture, authorize → void
 ```
 
 ## Deploy (Render)
 
-`render.yaml` defines one web service: `npm run build` builds both apps, and Express serves the API and the React app from one origin. In Render choose **New → Blueprint**, select this repo, and fill in the keys, including `CAREGIVER_PIN`. `APP_SECRET` is generated for you, and the public URL comes from `RENDER_EXTERNAL_URL`.
+`render.yaml` defines one web service: `npm run build` builds both apps, and Express serves the API and the React app from one origin. In Render choose **New → Blueprint**, select this repo, and fill in the keys. `APP_SECRET` is generated for you, and the public URL comes from `RENDER_EXTERNAL_URL`.
 
 The free plan's disk is wiped on restart, which also forgets purchases and any PayPal holds still waiting for Sarah. After connecting PayPal once, copy the vault ID from the logs into `PAYPAL_VAULT_ID` so the connection survives restarts. For judging, the starter plan with the disk block in `render.yaml` (and `DATA_DIR`) keeps everything.
 
@@ -150,13 +149,13 @@ The free plan's disk is wiped on restart, which also forgets purchases and any P
 1. **Margaret's view:** say or tap *"I'm almost out of my blood pressure cuffs"*. The agent finds one, she taps Yes, and it is paid at once because it's within the rules.
 2. Ask for something over $40 or from a new store. It is **held** on PayPal, and Sarah sees it under *Needs your OK* (and by email).
 3. Tap *"A man called, my grandson is in jail and needs gift cards"*. It is blocked, and Sarah gets a scam alert.
-4. **Sarah's dashboard** (enter the caregiver PIN): approve or decline the hold, open a receipt, fetch the live PayPal order, refund a purchase, or edit the rules in English and review the changes.
+4. **Sarah's dashboard**: approve or decline the hold, open a receipt, fetch the live PayPal order, refund a purchase, or edit the rules in English and review the changes.
 5. **Reset demo** (on Sarah's dashboard) releases open PayPal holds, then clears purchases and chats. It keeps Sarah's rules and the PayPal connection.
 
 ## Honest scope
 
 - Payments are real PayPal **sandbox** transactions, with Guardian Cart as the merchant. Delivery from the retailers is **simulated**; a production version would pass orders to retailers or a commerce API.
-- Margaret's page is one click and Sarah's is behind a shared PIN, for judging. A real product would use proper accounts, with the caregiver invited by the older adult.
+- Both Margaret's page and Sarah's dashboard are one click, for judging. A real product would use proper accounts, with the caregiver invited by the older adult.
 - The weekly budget is a rolling 7 days, shown as "Last 7 days". Going over budget asks Sarah rather than blocking, so she can still approve a one-off.
 - Data is kept in a JSON file, which is fine for a single-instance demo. A production version would use a database.
 

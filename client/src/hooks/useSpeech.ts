@@ -21,7 +21,10 @@ function getRecognitionCtor(): (new () => Recognition) | undefined {
   return w.SpeechRecognition || w.webkitSpeechRecognition;
 }
 
-/** Push-to-talk speech input. Calls onFinal once with the full sentence when the person stops talking. */
+// Older adults often pause mid-sentence; wait this long after the last word before sending
+const SILENCE_MS = 2200;
+
+/** Tap-to-talk speech input. Keeps listening through short pauses, then calls onFinal once with everything said. */
 export function useSpeechInput(onFinal: (text: string) => void) {
   const supported = typeof window !== 'undefined' && Boolean(getRecognitionCtor());
   const [listening, setListening] = useState(false);
@@ -40,31 +43,41 @@ export function useSpeechInput(onFinal: (text: string) => void) {
     const recognition = new Ctor();
     recognition.lang = 'en-US';
     recognition.interimResults = true;
-    recognition.continuous = false;
+    recognition.continuous = true;
 
     let finalText = '';
+    let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+    const armSilenceTimer = () => {
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => recognition.stop(), SILENCE_MS);
+    };
     recognition.onresult = e => {
+      armSilenceTimer();
       let partial = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
-        if (result.isFinal) finalText += result[0].transcript;
+        if (result.isFinal) finalText += ` ${result[0].transcript}`;
         else partial += result[0].transcript;
       }
-      setInterim(finalText + partial);
+      setInterim(`${finalText} ${partial}`.trim());
     };
     recognition.onerror = e => {
       setError(e.error === 'not-allowed' ? 'Microphone permission was blocked. You can type instead.' : "Sorry, I didn't catch that.");
     };
     recognition.onend = () => {
+      clearTimeout(silenceTimer);
       setListening(false);
       setInterim('');
-      if (finalText.trim()) onFinalRef.current(finalText.trim());
+      const said = finalText.replace(/\s+/g, ' ').trim();
+      if (said) onFinalRef.current(said);
     };
 
     recognitionRef.current = recognition;
     setError(null);
     setListening(true);
     recognition.start();
+    // Nobody spoke at all: stop after a while instead of listening forever
+    silenceTimer = setTimeout(() => recognition.stop(), 8000);
   }, []);
 
   useEffect(() => () => recognitionRef.current?.stop(), []);

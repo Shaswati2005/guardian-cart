@@ -36,10 +36,6 @@ services:
         sync: false
       - key: APP_SECRET
         generateValue: true
-      # Required: Sarah's dashboard (approve, refund, rules) asks for this PIN. 6+ characters;
-      # put it in the submission notes for judges.
-      - key: CAREGIVER_PIN
-        sync: false
       - key: CLIENT_URL
         value: /
       - key: AI_DAILY_LIMIT

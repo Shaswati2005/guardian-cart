@@ -8,7 +8,7 @@ import express from 'express';
 import { apiRouter } from './routes.js';
 import { validateConfig } from './config.js';
 
-// Stops here (in production) on a non-sandbox PayPal URL, a missing APP_SECRET or CAREGIVER_PIN
+// Stops here (in production) on a non-sandbox PayPal URL, or a missing APP_SECRET
 try {
   validateConfig();
 } catch (err: any) {

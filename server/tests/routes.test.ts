@@ -9,7 +9,6 @@ import type { AddressInfo } from 'net';
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'guardian-cart-routes-'));
 process.env.APP_SECRET = 'routes-test-secret-0123456789';
-process.env.CAREGIVER_PIN = '246810';
 delete process.env.PAYPAL_CLIENT_ID;
 delete process.env.RESEND_API_KEY;
 
@@ -33,22 +32,17 @@ async function call(pathname: string, init: { method?: string; body?: unknown; c
   return { status: res.status, data: (await res.json().catch(() => ({}))) as any, cookie };
 }
 
-test('#2 switching personas many times never locks anyone out', async () => {
+test('#2 switching personas many times never locks anyone out, and Sarah needs no PIN', async () => {
   for (let i = 0; i < 30; i++) {
     assert.equal((await call('/session', { method: 'POST', body: { role: 'elder' } })).status, 200);
-    // Asking for Sarah's page without a PIN is how the page learns one is needed: not a guess
-    const ask = await call('/session', { method: 'POST', body: { role: 'caregiver' } });
-    assert.equal(ask.status, 403);
-    assert.equal(ask.data.pinRequired, true);
-    assert.equal((await call('/session', { method: 'POST', body: { role: 'caregiver', pin: '246810' } })).status, 200);
+    assert.equal((await call('/session', { method: 'POST', body: { role: 'caregiver' } })).status, 200);
   }
 });
 
 test('#2 an existing session is reported, so pages can reuse it instead of logging in again', async () => {
-  const { cookie } = await call('/session', { method: 'POST', body: { role: 'caregiver', pin: '246810' } });
+  const { cookie } = await call('/session', { method: 'POST', body: { role: 'caregiver' } });
   const info = await call('/session', { cookie });
   assert.deepEqual(info.data.roles, ['caregiver']);
-  assert.equal(info.data.caregiverPinRequired, true);
 });
 
 test('#7 a request with the other persona\'s cookie is flagged so the page can switch back', async () => {
@@ -60,7 +54,7 @@ test('#7 a request with the other persona\'s cookie is flagged so the page can s
 });
 
 test('R4#2 Margaret and Sarah side by side in one browser: entering as one never logs the other out', async () => {
-  const sarah = (await call('/session', { method: 'POST', body: { role: 'caregiver', pin: '246810' } })).cookie!;
+  const sarah = (await call('/session', { method: 'POST', body: { role: 'caregiver' } })).cookie!;
   const margaret = (await call('/session', { method: 'POST', body: { role: 'elder' } })).cookie!;
   const both = `${sarah}; ${margaret}`;
   assert.deepEqual((await call('/session', { cookie: both })).data.roles, ['elder', 'caregiver']);
@@ -69,15 +63,4 @@ test('R4#2 Margaret and Sarah side by side in one browser: entering as one never
   // A cookie for one persona can't be relabelled as the other
   const forged = margaret.replace('gc_elder=', 'gc_caregiver=');
   assert.equal((await call('/dashboard', { cookie: forged })).status, 401);
-});
-
-// Runs last: it locks this test client's IP out of PIN attempts
-test('#2 wrong PINs are still limited, and the lockout also stops the right PIN', async () => {
-  for (let i = 0; i < 10; i++) {
-    assert.equal((await call('/session', { method: 'POST', body: { role: 'caregiver', pin: `00000${i}` } })).status, 403);
-  }
-  const locked = await call('/session', { method: 'POST', body: { role: 'caregiver', pin: '246810' } });
-  assert.equal(locked.status, 429);
-  // Margaret's page is unaffected
-  assert.equal((await call('/session', { method: 'POST', body: { role: 'elder' } })).status, 200);
 });

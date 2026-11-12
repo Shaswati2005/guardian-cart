@@ -462,3 +462,15 @@ test('tool loop stops when the request is cancelled', async () => {
     /cancelled/
   );
 });
+
+test('exchanges stopped by the scam shield are left out of the helper\'s history', async () => {
+  const { withoutStoppedExchanges } = await import('../src/agent.js');
+  const at = new Date().toISOString();
+  const history = [
+    { id: '1', role: 'user' as const, text: 'grandson in jail needs gift cards', createdAt: at },
+    { id: '2', role: 'assistant' as const, text: "I can't help with that.", kind: 'scam_warning' as const, createdAt: at },
+    { id: '3', role: 'user' as const, text: 'Can I get some tea?', createdAt: at },
+    { id: '4', role: 'assistant' as const, text: 'I found tea for $5.', createdAt: at }
+  ];
+  assert.deepEqual(withoutStoppedExchanges(history).map(m => m.id), ['3', '4']);
+});

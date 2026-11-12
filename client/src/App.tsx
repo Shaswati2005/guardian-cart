@@ -1,17 +1,13 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { KeyRound, RotateCcw, ShieldCheck } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { Button } from '@astryxdesign/core/Button';
-import { Card } from '@astryxdesign/core/Card';
-import { Heading } from '@astryxdesign/core/Heading';
 import { Spinner } from '@astryxdesign/core/Spinner';
-import { Text } from '@astryxdesign/core/Text';
-import { TextInput } from '@astryxdesign/core/TextInput';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
 import { useToast } from '@astryxdesign/core/Toast';
 import { TopNav, TopNavHeading, TopNavItem } from '@astryxdesign/core/TopNav';
-import { api, ApiError, type Role } from './api';
+import { api, type Role } from './api';
 import { Landing } from './pages/Landing';
-import { icon } from './components/ui';
+import { icon, Logo } from './components/ui';
 
 // Split per persona: the caregiver page carries AG Grid, which Margaret's page never needs
 const ElderView = lazy(() => import('./pages/ElderView').then(m => ({ default: m.ElderView })));
@@ -42,25 +38,20 @@ export default function App() {
   // The server checks a signed persona cookie on every action, so switch it before showing a page
   const [sessionRole, setSessionRole] = useState<Role | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
-  // Sarah's dashboard can move money, so the server asks for her PIN before giving out that role
-  const [needsPin, setNeedsPin] = useState(false);
   const neededRole = ROLE_FOR_ROUTE[route];
 
   useEffect(() => {
     if (!neededRole || neededRole === sessionRole) return;
     let cancelled = false;
     setSessionError(null);
-    setNeedsPin(false);
-    // Reuse the cookie when it already has this role (reloads, returning from PayPal), so Sarah
-    // isn't asked for her PIN again and switching pages doesn't log in over and over
+    // Reuse the cookie when it already has this role (reloads, returning from PayPal), so switching
+    // pages doesn't log in over and over
     api
       .sessionInfo()
       .then(info => (info.roles.includes(neededRole) ? undefined : api.startSession(neededRole)))
       .then(() => !cancelled && setSessionRole(neededRole))
       .catch(err => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.data.pinRequired) setNeedsPin(true);
-        else setSessionError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) setSessionError(err instanceof Error ? err.message : String(err));
       });
     return () => {
       cancelled = true;
@@ -114,7 +105,7 @@ export default function App() {
             label="Main"
             heading={
               <TopNavHeading
-                logo={icon(ShieldCheck, 'lg')}
+                logo={<Logo size={28} />}
                 logoLabel="Guardian Cart home"
                 heading={narrow ? undefined : 'Guardian Cart'}
                 headingHref="#/"
@@ -152,74 +143,13 @@ export default function App() {
             </p>
           </Scroll>
         )}
-        {neededRole === 'caregiver' && needsPin && sessionRole !== 'caregiver' && (
-          <Scroll>
-            <PinPrompt
-              onUnlocked={() => {
-                setNeedsPin(false);
-                setSessionRole('caregiver');
-              }}
-            />
-          </Scroll>
-        )}
-        {neededRole && !sessionError && !needsPin && (
+        {neededRole && !sessionError && (
           <Suspense fallback={<PageLoading />}>
             {sessionRole !== neededRole ? <PageLoading /> : route === 'margaret' ? <ElderView /> : <CaregiverView />}
           </Suspense>
         )}
       </main>
     </div>
-  );
-}
-
-function PinPrompt({ onUnlocked }: { onUnlocked: () => void }) {
-  const [pin, setPin] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.startSession('caregiver', pin);
-      onUnlocked();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Card maxWidth={420} className="mx-auto mt-16">
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={e => {
-          e.preventDefault();
-          if (pin.trim()) submit();
-        }}
-      >
-        <Heading level={1} className="flex items-center gap-2 text-2xl">
-          <span className="text-accent">{icon(KeyRound, 'lg')}</span> Sarah's dashboard
-        </Heading>
-        <Text as="p" color="secondary">
-          This page can approve payments and change the rules, so it needs the caregiver PIN.
-        </Text>
-        <TextInput
-          label="PIN"
-          type="password"
-          inputMode="numeric"
-          autoComplete="current-password"
-          size="lg"
-          hasAutoFocus
-          value={pin}
-          onChange={setPin}
-          status={error ? { type: 'error', message: error } : undefined}
-          statusVariant="detached"
-        />
-        <Button type="submit" label="Open dashboard" variant="primary" size="lg" width="100%" isLoading={busy} isDisabled={!pin.trim()} />
-      </form>
-    </Card>
   );
 }
 

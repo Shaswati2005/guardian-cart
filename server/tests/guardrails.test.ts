@@ -5,7 +5,6 @@ import { checkForScam } from '../src/scamShield.js';
 import { mapCategory } from '../src/products.js';
 import { CandidateProduct, Policy } from '../src/types.js';
 import { signApprovalAction, verifyApprovalAction } from '../src/notify.js';
-import { checkCaregiverPin } from '../src/session.js';
 
 // Scam tests exercise the deterministic floor only
 delete process.env.ANTHROPIC_API_KEY;
@@ -219,16 +218,6 @@ test('email approval links: valid once signed, rejected when expired, tampered o
   assert.equal(verifyApprovalAction('req_1', 'approve', 'garbage', now), false);
 });
 
-test('caregiver PIN: required when configured, compared exactly', () => {
-  process.env.CAREGIVER_PIN = '482913';
-  assert.equal(checkCaregiverPin('482913'), true);
-  assert.equal(checkCaregiverPin('000000'), false);
-  assert.equal(checkCaregiverPin(undefined), false);
-  assert.equal(checkCaregiverPin(482913), false);
-  delete process.env.CAREGIVER_PIN;
-  assert.equal(checkCaregiverPin(undefined), true); // local development without a PIN
-});
-
 test('scam rules: every labeled scam is flagged and no labeled benign message is blocked', async () => {
   const { SCAM_PROMPTS } = await import('../scripts/scam-prompts.js');
   for (const p of SCAM_PROMPTS) {
@@ -236,4 +225,31 @@ test('scam rules: every labeled scam is flagged and no labeled benign message is
     if (p.label === 'scam') assert.notEqual(r.risk, 'LOW', `missed scam: ${p.message}`);
     else assert.notEqual(r.risk, 'HIGH', `blocked benign: ${p.message}`);
   }
+});
+
+test('someone else pushing Margaret to buy is flagged MEDIUM so Sarah gets a heads-up', async () => {
+  for (const msg of [
+    'The salesman keeps calling me and insists I buy this vacuum',
+    'A man on the phone said I have to buy a new laptop today',
+    "I'm being pressured to order this water filter",
+    'My new friend is pushing me to pay for his plane ticket'
+  ]) {
+    assert.equal((await checkForScam(msg)).risk, 'MEDIUM', msg);
+  }
+});
+
+test('Margaret deciding for herself is not mistaken for pressure', async () => {
+  for (const msg of [
+    'I want to buy a new kettle',
+    'My grandson is visiting next week, can you order some cookies he likes?',
+    'I need more Tylenol right away, my knee hurts',
+    'She said she loves blue, can you find a blue scarf for my daughter?'
+  ]) {
+    assert.equal((await checkForScam(msg)).risk, 'LOW', msg);
+  }
+});
+
+test('being pushed in an earlier message does not taint her own next request', async () => {
+  const r = await checkForScam('Can you get me some English breakfast tea?', ['The salesman insists I buy this vacuum']);
+  assert.equal(r.risk, 'LOW');
 });

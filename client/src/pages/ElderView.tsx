@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
-import { CircleCheck, Mic, ShieldCheck, Square, Store, Volume2, VolumeX } from 'lucide-react';
+import { CircleCheck, Mic, Square, Store, Volume2, VolumeX } from 'lucide-react';
 import { Banner, type BannerProps } from '@astryxdesign/core/Banner';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -63,13 +63,9 @@ function outcomeFor(tx: Transaction | undefined, caregiver: string): Outcome | n
   }
 }
 
-/** The helper's avatar: the same shield as the app logo, so Margaret knows who is talking. */
+/** The helper's avatar: a friendly face, so Margaret feels she is talking to someone, not a machine. */
 function HelperAvatar() {
-  return (
-    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-on-accent" aria-hidden>
-      {icon(ShieldCheck, 'md')}
-    </span>
-  );
+  return <img src="/helper.jpg" alt="" aria-hidden className="h-11 w-11 shrink-0 rounded-full border border-border object-cover" />;
 }
 
 function ProposalCard({

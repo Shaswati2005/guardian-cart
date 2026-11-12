@@ -20,6 +20,18 @@ export const icon = (glyph: ComponentType<SVGProps<SVGSVGElement>>, size?: 'xsm'
   <Icon icon={glyph} size={size} />
 );
 
+/** The Guardian Cart mark: a shopping bag with a heart, the same drawing as favicon.svg. */
+export function Logo({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="8" fill="#c2410c" />
+      <path d="M11 12V10a5 5 0 0 1 10 0v2" stroke="#fff7ed" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <path d="M7.5 12h17l-1.3 13.2a2 2 0 0 1-2 1.8H10.8a2 2 0 0 1-2-1.8z" fill="#fff7ed" />
+      <path d="M16 23.2s-4-2.4-4-5.1a2.1 2.1 0 0 1 4-1 2.1 2.1 0 0 1 4 1c0 2.7-4 5.1-4 5.1z" fill="#c2410c" />
+    </svg>
+  );
+}
+
 const CATEGORY_ICON: Record<PolicyCategory, typeof Package> = {
   HEALTH: HeartPulse,
   GROCERY: ShoppingBasket,
